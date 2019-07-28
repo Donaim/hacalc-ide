@@ -1,0 +1,3 @@
+[submodule "PatternT"]
+	path = PatternT
+	url = https://github.com/Donaim/PatternT.git
