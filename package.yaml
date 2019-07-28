@@ -25,6 +25,11 @@ dependencies:
 library:
   source-dirs: src
 
+ghc-options:
+- -Wno-tabs
+- -Wincomplete-patterns
+- -O3
+
 executables:
   hacalc-rules-exe:
     main:                Main.hs
