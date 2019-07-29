@@ -66,7 +66,7 @@ instance Reactor CompilerState CompilerEvent
 	
 
 data CompilerCtx = CompilerCtx
-	{ execThreads   :: IORef [(Int, CONC.ThreadId)]
+	{ execThreads   :: IORef [(Int, String, CONC.ThreadId)]
 	, evalCount     :: Int
 	, ebin          :: EventsBin
 	}
@@ -75,7 +75,7 @@ runSimplification :: String -> CompilerCtx -> [SimplifyPattern] -> IO CompilerCt
 runSimplification line ctx patterns = do
 
 	newth <- CONC.forkIO safeSimpthread
-	atomicModifyIORef' (execThreads ctx) (\ threads -> ((currentEvalIndex, newth) : threads, ())) -- FIXME: datarace possible - if `newth` finishes too quickly, the removeFunc will do nothing and this thread will hang in list forever
+	atomicModifyIORef' (execThreads ctx) (\ threads -> ((currentEvalIndex, line, newth) : threads, ())) -- FIXME: datarace possible - if `newth` finishes too quickly, the removeFunc will do nothing and this thread will hang in list forever
 
 	return $ ctx { evalCount = currentEvalIndex }
 
@@ -96,14 +96,37 @@ runSimplification line ctx patterns = do
 
 	currentEvalIndex = evalCount ctx + 1
 	removeFunc = atomicModifyIORef' (execThreads ctx) modify
-	modify threads = (filter ((/= currentEvalIndex) . fst) threads, ())
+	modify threads = (filter ((/= currentEvalIndex) . fst3) threads, ())
+
+threadsDoall :: CompilerCtx -> (Int -> IO ()) -> IO ()
+threadsDoall ctx func = do
+	threads <- readIORef (execThreads ctx)
+	let indexes = map fst3 threads
+	mapM_ func indexes
+
+rerunSimplificationThread :: CompilerCtx -> [SimplifyPattern] -> Int -> IO ()
+rerunSimplificationThread ctx patterns index = do
+	matched <- atomicModifyIORef' (execThreads ctx) modify
+	mapM_ todo matched
+	where
+	todo (id, line, th) = do
+		CONC.killThread th
+		runSimplification line ctx patterns
+
+	modify threads = partition ((== index) . fst3) threads
 
 killRunningSimplification :: CompilerCtx -> Int -> IO ()
 killRunningSimplification ctx index = do
 	matched <- atomicModifyIORef' (execThreads ctx) modify
-	mapM_ (CONC.killThread . snd) matched
+	mapM_ todo matched
 	where
-	modify threads = partition ((== index) . fst) threads
+	todo (id, line, th) = do
+		CONC.killThread th
+
+	modify threads = partition ((== index) . fst3) threads
+
+fst3 :: (a, b, c) -> a
+fst3 (a, b, c) = a
 
 runSimplificationThread :: IO () -> EventsBin -> [SimlifyFT] -> String -> IO ()
 runSimplificationThread removeFunc ebin mixed line =
