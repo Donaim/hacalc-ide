@@ -22,10 +22,10 @@ data ReaderState = ReaderState
 	, modifyTime    :: UTCTime
 	} deriving (Eq, Show, Read)
 
-instance Reactor ReaderState ReaderEvent where
+instance Reactor ReaderState ReaderEvent () where
 	reactorStoppedQ = readerStopped
 	reactorDelayMS = const 100
-	reactorProcess = readerProcess
+	reactorProcess ctx = readerProcess
 
 readerProcess :: ReaderState -> [ReaderEvent] -> IO (ReaderState, [Dynamic])
 readerProcess reader events = do

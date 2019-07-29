@@ -62,7 +62,7 @@ data CompilerState = CompilerState
 	, compilerPatterns         :: [SimplifyPattern]
 	} deriving (Eq, Show, Read)
 
-instance Reactor CompilerState CompilerEvent where
+instance Reactor CompilerState CompilerEvent CompilerCtx where
 	reactorStoppedQ = compierStopped
 	reactorDelayMS = const 100
 	-- reactorProcess = compilerProcess

@@ -39,19 +39,19 @@ ioRefStdAdd ref new =
 	else atomicModifyIORef' ref (\ all -> (all ++ [new], ())) -- TODO: append in O(1)
 
 
-class (Show r, Read r, Typeable e) => Reactor r e | r -> e where
+class (Show r, Read r, Typeable e) => Reactor r e ctx | r -> e, r -> ctx where
 	reactorStoppedQ  :: r -> Bool
 	reactorDelayMS   :: r -> Int
 
-	reactorProcess   :: r -> [e] -> IO (r, [Dynamic])
+	reactorProcess   :: ctx -> r -> [e] -> IO (r, [Dynamic])
 
-reactorLoop :: (Reactor r e) => EventsBin -> r -> IO r
-reactorLoop ebin state0 = loop state0
+reactorLoop :: (Reactor r e ctx) => EventsBin -> ctx -> r -> IO r
+reactorLoop ebin ctx state0 = loop state0
 	where
 	loop state = do
 		CONC.threadDelay (reactorDelayMS state * 1000)
 		events <- recieveEvents ebin
-		(newstate, responses) <- reactorProcess state events
+		(newstate, responses) <- reactorProcess ctx state events
 
 		unless (null responses) (ioRefStdAdd (ref ebin) (responses))
 
