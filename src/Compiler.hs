@@ -6,7 +6,6 @@ import Data.List
 import Control.Monad
 import Data.IORef
 import Data.Dynamic
-import qualified Control.Concurrent.ParallelIO.Local as CONC
 import qualified Control.Concurrent as CONC
 import Control.Exception
 
