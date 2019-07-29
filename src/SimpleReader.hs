@@ -13,9 +13,6 @@ import IReader
 import ICompiler
 import Events
 
-readerNotify :: String -> IO ()
-readerNotify message = putStrLn message
-
 data ReaderState = ReaderState
 	{ readerStopped :: Bool
 	, currentFile   :: String
