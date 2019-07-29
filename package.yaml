@@ -24,6 +24,9 @@ dependencies:
 - directory
 - time
 
+default-extensions:
+- MultiParamTypeClasses
+
 library:
   source-dirs: src
 
