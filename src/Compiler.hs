@@ -70,16 +70,16 @@ data CompilerCtx = CompilerCtx
 	, ebin          :: EventsBin
 	}
 
-runSimplification :: String -> CompilerCtx -> CompilerState -> IO (CompilerCtx, CompilerState)
-runSimplification line ctx state = do
+runSimplification :: String -> CompilerCtx -> [SimplifyPattern] -> IO CompilerCtx
+runSimplification line ctx patterns = do
 
 	newth <- CONC.forkIO safeSimpthread
 	atomicModifyIORef' (execThreads ctx) (\ threads -> ((currentEvalIndex, newth) : threads, ())) -- FIXME: datarace possible - if `newth` finishes too quickly, the removeFunc will do nothing and this thread will hang in list forever
 
-	return (ctx { evalCount = currentEvalIndex }, state)
+	return $ ctx { evalCount = currentEvalIndex }
 
 	where
-	simpthread = runSimplificationThread removeFunc (ebin ctx) (mixedRules (compilerPatterns state)) line
+	simpthread = runSimplificationThread removeFunc (ebin ctx) (mixedRules patterns) line
 	safeSimpthread = do
 		x <- try simpthread
 		handleResult x
@@ -96,6 +96,8 @@ runSimplification line ctx state = do
 	currentEvalIndex = evalCount ctx + 1
 	removeFunc = atomicModifyIORef' (execThreads ctx) modify
 	modify threads = (filter ((/= currentEvalIndex) . fst) threads, ())
+
+-- killRunningSimplification :: CompilerCtx -> Int -> 
 
 runSimplificationThread :: IO () -> EventsBin -> [SimlifyFT] -> String -> IO ()
 runSimplificationThread removeFunc ebin mixed line =
