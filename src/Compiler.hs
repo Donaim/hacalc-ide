@@ -93,6 +93,7 @@ compilerProcess ctx state events0 = do
 						xs
 				Right patterns -> do
 					let newstate = state { compilerText = newtext, compilerPatterns = patterns }
+					sendEvent (ebin ctx) (ResetEvaluations)
 					threadsDoall ctx (rerunSimplificationThread ctx patterns)
 					loop
 						(appendDyn (DebugLog "Rule file updated -> rerunning evaluations") buf)
