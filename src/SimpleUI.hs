@@ -40,7 +40,7 @@ simpleUINew filepath = do
 
 writeEvals :: Handle -> [EvalRecord] -> IO ()
 writeEvals handle evals = do
-	let formatted = unlines $ map formatEval evals
+	let formatted = unlines $ map formatEval (reverse evals)
 	writeOut handle formatted
 
 formatEval :: EvalRecord -> String
