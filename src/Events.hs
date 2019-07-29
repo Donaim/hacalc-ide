@@ -45,6 +45,14 @@ class (Show r, Read r, Typeable e) => Reactor r e ctx | r -> e, r -> ctx where
 
 	reactorProcess   :: ctx -> r -> [e] -> IO (r, [Dynamic])
 
+	reactorLoadState :: FilePath -> IO r
+	reactorLoadState path = do
+		txt <- readFile path
+		return $ read txt
+
+	reactorSaveState :: r -> FilePath -> IO ()
+	reactorSaveState r path = writeFile path (show r)
+
 reactorLoop :: (Reactor r e ctx) => EventsBin -> ctx -> r -> IO r
 reactorLoop ebin ctx state0 = loop state0
 	where
