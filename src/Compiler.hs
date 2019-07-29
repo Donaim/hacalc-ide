@@ -14,6 +14,8 @@ import PatternT.Display
 import PatternT.MonadicRules
 
 import ICompiler
+import IUI
+import Events
 
 type SimplifyMonad = IO
 type SimplifyCtx = ()
@@ -44,7 +46,8 @@ mixedRules :: [SimplifyPattern] -> [SimlifyFT]
 mixedRules patterns = map Tuple32 builtinRules ++ map Tuple30 patterns
 
 data CompilerState = CompilerState
-	{ compilerText             :: String
+	{ compierStopped           :: Bool
+	, compilerText             :: String
 	, compilerPatterns         :: [SimplifyPattern]
 	, compilerEvalRecords      :: [(Tree, Maybe Tree)]
 	} deriving (Eq, Show, Read)

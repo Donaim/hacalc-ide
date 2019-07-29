@@ -40,8 +40,7 @@ class (Show r, Read r, Typeable e) => Reactor r e | r -> e where
 	reactorStoppedQ  :: r -> Bool
 	reactorDelayMS   :: r -> Int
 
-	reactorProcess   :: r -> [e] -> IO r
-	reactorProduce   :: r -> IO [Dynamic]
+	reactorProcess   :: r -> [e] -> IO (r, [Dynamic])
 
 reactorLoop :: (Reactor r e) => EventsBin -> r -> IO r
 reactorLoop ebin state0 = loop state0
@@ -49,11 +48,10 @@ reactorLoop ebin state0 = loop state0
 	loop state = do
 		CONC.threadDelay (reactorDelayMS state * 1000)
 		events <- recieveEvents ebin
-		newstate <- reactorProcess state events
+		(newstate, responses) <- reactorProcess state events
+
+		unless (null responses) (ioRefStdAdd (ref ebin) (responses))
 
 		if (reactorStoppedQ state)
 		then return newstate
-		else do
-			responses <- reactorProduce state
-			unless (null responses) (ioRefStdAdd (ref ebin) (responses))
-			loop newstate
+		else loop newstate
