@@ -3,8 +3,10 @@ module Compiler where
 
 import Data.Either
 import Control.Monad
+import Data.IORef
 import Data.Dynamic
-import Control.Concurrent.ParallelIO.Local as Parallel
+import qualified Control.Concurrent.ParallelIO.Local as CONC
+import qualified Control.Concurrent as CONC
 
 import PatternT.Types
 import PatternT.Util
@@ -22,6 +24,12 @@ type SimplifyMonad = IO
 type SimplifyCtx = ()
 type MonadicSimplifyT = MonadicSimplify SimplifyMonad SimplifyCtx
 type SimlifyFT = SimplificationF SimplifyMonad SimplifyCtx
+
+simplifyCtxInitial :: SimplifyCtx
+simplifyCtxInitial = ()
+
+showCtx :: SimplifyCtx -> String
+showCtx = show
 
 builtinRules :: [PureSimplificationF]
 builtinRules =
@@ -50,10 +58,37 @@ data CompilerState = CompilerState
 	{ compierStopped           :: Bool
 	, compilerText             :: String
 	, compilerPatterns         :: [SimplifyPattern]
-	, compilerEvalRecords      :: [(Tree, Maybe Tree)]
+	, compilerEvalRecords      :: [Tree]
 	} deriving (Eq, Show, Read)
 
-runSimplifications :: Parallel.Pool -> CompilerState -> IO CompilerState
-runSimplifications pool state = undefined
-	where
+data CompilerCtx = CompilerCtx
+	{ execThread    :: Maybe CONC.ThreadId
+	, ebin          :: EventsBin
+	}
 
+runSimplifications :: CompilerCtx -> CompilerState -> IO (CompilerCtx, CompilerState)
+runSimplifications ctx state = do
+
+	case execThread ctx of
+		Just th -> CONC.killThread th
+		Nothing -> return ()
+
+	sendEvent (ebin ctx) ResetEvaluations
+
+	newth <- CONC.forkIO $ runSimplificationsThread (ebin ctx) state
+	let newctx = ctx { execThread = Just newth }
+
+	return (newctx, state)
+
+runSimplificationsThread :: EventsBin -> CompilerState -> IO ()
+runSimplificationsThread ebin state = mapM_ forF (compilerEvalRecords state)
+	where
+	mixed = mixedRules (compilerPatterns state)
+	forF tree = do
+		history <- mixedApplySimplificationsWithPureUntil0Debug mixed simplifyCtxInitial tree
+		sendEvent ebin (PushEvaluation tree (showHistory history))
+
+showHistory :: [(Tree, Either SimplifyPattern String, SimplifyCtx)] -> [(String, String, String)]
+showHistory = map f
+	where
+	f (t, traceElem, ctx) = (stringifyTree t, stringifyTraceElem traceElem, showCtx ctx)

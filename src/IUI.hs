@@ -9,4 +9,6 @@ data UIEvent
 	| ReaderNotify String
 	| CompilerNotify String
 	| DebugLog String
+	| ResetEvaluations
+	| PushEvaluation Tree [(String, String, String)]
 	deriving (Eq, Show, Read, Typeable)

@@ -14,6 +14,9 @@ data EventsBin = EventsBin
 	{ ref :: IORef [[Dynamic]]
 	}
 
+sendEvent :: (Typeable a) => EventsBin -> a -> IO ()
+sendEvent bin event = ioRefStdAdd (ref bin) [toDyn event]
+
 sendEvents :: (Typeable a) => EventsBin -> [a] -> IO ()
 sendEvents bin events = ioRefStdAdd (ref bin) (map toDyn events)
 
