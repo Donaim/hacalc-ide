@@ -5,6 +5,7 @@ import Data.Dynamic
 import System.IO
 
 import PatternT.All
+import Events
 import Util
 import IUI
 
@@ -15,6 +16,7 @@ data UIState = UIState
 	, currentEvals         :: [EvalRecord]
 	, longHistory          :: [[EvalRecord]]
 	, outfile              :: String
+	, refreshq             :: Bool
 	} deriving (Eq, Show, Read)
 
 data UICtx = UICtx
@@ -29,6 +31,7 @@ simpleUINew filepath = do
 		, currentEvals = []
 		, longHistory = []
 		, outfile = filepath
+		, refreshq = False
 		}
 	let ctx = UICtx
 		{ outHandle = handle
@@ -50,3 +53,63 @@ writeOut handle text = do
 	hSeek handle AbsoluteSeek 0
 	hPutStr handle text
 	hFlush handle
+
+instance Reactor UIState UIEvent UICtx where
+	reactorStoppedQ = stopped
+	reactorDelayMS = const 100
+
+	reactorProcess = process
+
+process :: UICtx -> UIState -> [UIEvent] -> IO (UIState, [Dynamic])
+process ctx state events0 = do
+	(newstate, rbuf) <- loop [] state events0
+	return (newstate, reverse rbuf)
+	where
+	loop buf state [] = return (state, buf)
+	loop buf state (x : xs) = case x of
+		(UIStopEvent) -> do
+			let newstate = state { stopped = True }
+			return (newstate, buf)
+
+		(CompilerParseError errs) -> do
+			putStrLn $ "PARSE ERROR: " ++ show x
+			next
+
+		(CompilerTokenizeError err) -> do
+			putStrLn $ "TOKENIZE ERROR: " ++ show x
+			next
+
+		(ReaderNotify notify) -> do
+			putStrLn $ "READER: " ++ notify
+			next
+
+		(CompilerNotify notify) -> do
+			putStrLn $ "COMPILER: " ++ notify
+			next
+
+		(DebugLog log) -> do
+			putStrLn $ "LOG: " ++ log
+			next
+
+		(ResetEvaluations) -> do
+			let newstate = state
+				{ currentEvals = []
+				, longHistory = (currentEvals state) : (longHistory state)
+				, refreshq = True
+				}
+			loop buf newstate xs
+
+		(PushEvaluation id line history) -> do
+			let record = (id, line, history)
+			let newstate = state
+				{ currentEvals = record : (currentEvals state)
+				, refreshq = True
+				}
+			loop buf newstate xs
+
+		(EvaluationStarted id) -> do
+			putStrLn $ "EVALSTARTED: " ++ show id
+			next
+
+		where
+		next = loop buf state xs

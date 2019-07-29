@@ -5,7 +5,8 @@ import Data.Dynamic
 import PatternT.Types
 
 data UIEvent
-	= CompilerParseError [ParseMatchError]
+	= UIStopEvent
+	| CompilerParseError [ParseMatchError]
 	| CompilerTokenizeError ParseError
 	| ReaderNotify String
 	| CompilerNotify String
