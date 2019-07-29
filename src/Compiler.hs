@@ -62,8 +62,10 @@ data CompilerState = CompilerState
 	, compilerPatterns         :: [SimplifyPattern]
 	} deriving (Eq, Show, Read)
 
-instance Reactor CompilerState CompilerEvent
-	
+instance Reactor CompilerState CompilerEvent where
+	reactorStoppedQ = compierStopped
+	reactorDelayMS = const 100
+	-- reactorProcess = compilerProcess
 
 data CompilerCtx = CompilerCtx
 	{ execThreads   :: IORef [(Int, String, CONC.ThreadId)]
@@ -71,16 +73,19 @@ data CompilerCtx = CompilerCtx
 	, ebin          :: EventsBin
 	}
 
+-- compilerProcess :: CompilerState -> [ReaderEvent] -> IO (ReaderState, [Dynamic])
+
 runSimplification :: String -> CompilerCtx -> [SimplifyPattern] -> IO CompilerCtx
 runSimplification line ctx patterns = do
 
 	newth <- CONC.forkIO safeSimpthread
 	atomicModifyIORef' (execThreads ctx) (\ threads -> ((currentEvalIndex, line, newth) : threads, ())) -- FIXME: datarace possible - if `newth` finishes too quickly, the removeFunc will do nothing and this thread will hang in list forever
+	sendEvent (ebin ctx) (EvaluationStarted currentEvalIndex)
 
 	return $ ctx { evalCount = currentEvalIndex }
 
 	where
-	simpthread = runSimplificationThread removeFunc (ebin ctx) (mixedRules patterns) line
+	simpthread = runSimplificationThread currentEvalIndex (ebin ctx) (mixedRules patterns) line
 	safeSimpthread = do
 		x <- try simpthread
 		handleResult x
@@ -128,8 +133,8 @@ killRunningSimplification ctx index = do
 fst3 :: (a, b, c) -> a
 fst3 (a, b, c) = a
 
-runSimplificationThread :: IO () -> EventsBin -> [SimlifyFT] -> String -> IO ()
-runSimplificationThread removeFunc ebin mixed line =
+runSimplificationThread :: Int -> EventsBin -> [SimlifyFT] -> String -> IO ()
+runSimplificationThread index ebin mixed line =
 	case tokens of
 		Left err ->
 			sendEvent ebin (CompilerTokenizeError err)
@@ -140,7 +145,7 @@ runSimplificationThread removeFunc ebin mixed line =
 	withTokens oktokens = do
 		let tree = makeTree (Group oktokens)
 		history <- mixedApplySimplificationsWithPureUntil0Debug mixed simplifyCtxInitial tree
-		sendEvent ebin (PushEvaluation line (showHistory history))
+		sendEvent ebin (PushEvaluation index line (showHistory history))
 
 	showHistory :: [(Tree, Either SimplifyPattern String, SimplifyCtx)] -> [(String, String, String)]
 	showHistory = map f
