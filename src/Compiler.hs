@@ -2,6 +2,7 @@
 module Compiler where
 
 import Data.Either
+import Data.List
 import Control.Monad
 import Data.IORef
 import Data.Dynamic
@@ -97,7 +98,12 @@ runSimplification line ctx patterns = do
 	removeFunc = atomicModifyIORef' (execThreads ctx) modify
 	modify threads = (filter ((/= currentEvalIndex) . fst) threads, ())
 
--- killRunningSimplification :: CompilerCtx -> Int -> 
+killRunningSimplification :: CompilerCtx -> Int -> IO ()
+killRunningSimplification ctx index = do
+	matched <- atomicModifyIORef' (execThreads ctx) modify
+	mapM_ (CONC.killThread . snd) matched
+	where
+	modify threads = partition ((== index) . fst) threads
 
 runSimplificationThread :: IO () -> EventsBin -> [SimlifyFT] -> String -> IO ()
 runSimplificationThread removeFunc ebin mixed line =
