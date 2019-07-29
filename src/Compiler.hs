@@ -60,6 +60,7 @@ data CompilerState = CompilerState
 	{ compierStopped           :: Bool
 	, compilerText             :: String
 	, compilerPatterns         :: [SimplifyPattern]
+	, evalCount                :: Int
 	} deriving (Eq, Show, Read)
 
 instance Reactor CompilerState CompilerEvent CompilerCtx where
@@ -69,23 +70,22 @@ instance Reactor CompilerState CompilerEvent CompilerCtx where
 
 data CompilerCtx = CompilerCtx
 	{ execThreads   :: IORef [(Int, String, CONC.ThreadId)]
-	, evalCount     :: Int
 	, ebin          :: EventsBin
 	}
 
 -- compilerProcess :: CompilerState -> [ReaderEvent] -> IO (ReaderState, [Dynamic])
 
-runSimplification :: String -> CompilerCtx -> [SimplifyPattern] -> IO CompilerCtx
-runSimplification line ctx patterns = do
+runSimplification :: String -> CompilerCtx -> CompilerState -> IO CompilerState
+runSimplification line ctx state = do
 
 	newth <- CONC.forkIO safeSimpthread
 	atomicModifyIORef' (execThreads ctx) (\ threads -> ((currentEvalIndex, line, newth) : threads, ())) -- FIXME: datarace possible - if `newth` finishes too quickly, the removeFunc will do nothing and this thread will hang in list forever
 	sendEvent (ebin ctx) (EvaluationStarted currentEvalIndex)
 
-	return $ ctx { evalCount = currentEvalIndex }
+	return $ state { evalCount = currentEvalIndex }
 
 	where
-	simpthread = runSimplificationThread currentEvalIndex (ebin ctx) (mixedRules patterns) line
+	simpthread = runSimplificationThread currentEvalIndex (ebin ctx) (mixedRules (compilerPatterns state)) line
 	safeSimpthread = do
 		x <- try simpthread
 		handleResult x
@@ -99,7 +99,7 @@ runSimplification line ctx patterns = do
 			Left ex ->
 				sendEvent (ebin ctx) (DebugLog $ "Simplification thread#" ++ show currentEvalIndex ++ " with expr = " ++ line ++ " failed with: " ++ show ex)
 
-	currentEvalIndex = evalCount ctx + 1
+	currentEvalIndex = evalCount state + 1
 	removeFunc = atomicModifyIORef' (execThreads ctx) modify
 	modify threads = (filter ((/= currentEvalIndex) . fst3) threads, ())
 
@@ -109,14 +109,14 @@ threadsDoall ctx func = do
 	let indexes = map fst3 threads
 	mapM_ func indexes
 
-rerunSimplificationThread :: CompilerCtx -> [SimplifyPattern] -> Int -> IO ()
-rerunSimplificationThread ctx patterns index = do
+rerunSimplificationThread :: CompilerCtx -> CompilerState -> Int -> IO ()
+rerunSimplificationThread ctx state index = do
 	matched <- atomicModifyIORef' (execThreads ctx) modify
 	mapM_ todo matched
 	where
 	todo (id, line, th) = do
 		CONC.killThread th
-		runSimplification line ctx patterns
+		runSimplification line ctx state
 
 	modify threads = partition ((== index) . fst3) threads
 
