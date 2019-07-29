@@ -36,7 +36,7 @@ ioRefStdAdd ref new =
 	else atomicModifyIORef' ref (\ all -> (all ++ [new], ())) -- TODO: append in O(1)
 
 
-class (Show r, Read r, Show e, Read e, Typeable e) => Reactor r e | r -> e where
+class (Show r, Read r, Typeable e) => Reactor r e | r -> e where
 	reactorStoppedQ  :: r -> Bool
 	reactorDelayMS   :: r -> Int
 
