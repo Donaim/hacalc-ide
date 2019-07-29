@@ -13,7 +13,7 @@ type EvalRecord = (Int, String, [(String, String, String)])
 data UIState = UIState
 	{ stopped              :: Bool
 	, currentEvals         :: [EvalRecord]
-	, longHistory          :: [EvalRecord]
+	, longHistory          :: [[EvalRecord]]
 	, outfile              :: String
 	} deriving (Eq, Show, Read)
 
