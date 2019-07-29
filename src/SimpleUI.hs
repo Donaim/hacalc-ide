@@ -5,6 +5,7 @@ import Data.Dynamic
 import System.IO
 
 import PatternT.All
+import Util
 import IUI
 
 type EvalRecord = (Int, String, [(String, String, String)])
@@ -34,3 +35,18 @@ simpleUINew filepath = do
 		}
 	return (ctx, state)
 
+writeEvals :: Handle -> [EvalRecord] -> IO ()
+writeEvals handle evals = do
+	let formatted = unlines $ map formatEval evals
+	writeOut handle formatted
+
+formatEval :: EvalRecord -> String
+formatEval (id, line, history) =
+	show id ++ ") " ++ line ++ " -> " ++ result
+	where result = fst3 $ last history
+
+writeOut :: Handle -> String -> IO ()
+writeOut handle text = do
+	hSeek handle AbsoluteSeek 0
+	hPutStr handle text
+	hFlush handle

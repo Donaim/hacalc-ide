@@ -153,9 +153,6 @@ killRunningSimplification ctx index = do
 
 	modify threads = partition ((== index) . fst3) threads
 
-fst3 :: (a, b, c) -> a
-fst3 (a, b, c) = a
-
 runSimplificationThread :: Int -> EventsBin -> [SimlifyFT] -> String -> IO ()
 runSimplificationThread index ebin mixed line =
 	case tokens of
