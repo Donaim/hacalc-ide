@@ -3,6 +3,7 @@ module SimpleUI where
 
 import Data.Dynamic
 import System.IO
+import Control.Monad
 
 import PatternT.All
 import Events
@@ -63,6 +64,9 @@ instance Reactor UIState UIEvent UICtx where
 process :: UICtx -> UIState -> [UIEvent] -> IO (UIState, [Dynamic])
 process ctx state events0 = do
 	(newstate, rbuf) <- loop [] state events0
+	when (refreshq newstate) $ do
+		writeEvals (outHandle ctx) (currentEvals newstate)
+	let newstate = newstate { refreshq = False }
 	return (newstate, reverse rbuf)
 	where
 	loop buf state [] = return (state, buf)
@@ -111,5 +115,4 @@ process ctx state events0 = do
 			putStrLn $ "EVALSTARTED: " ++ show id
 			next
 
-		where
-		next = loop buf state xs
+		where next = loop buf state xs
