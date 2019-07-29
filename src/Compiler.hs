@@ -7,6 +7,7 @@ import Data.IORef
 import Data.Dynamic
 import qualified Control.Concurrent.ParallelIO.Local as CONC
 import qualified Control.Concurrent as CONC
+import Control.Exception
 
 import PatternT.Types
 import PatternT.Util
@@ -58,37 +59,59 @@ data CompilerState = CompilerState
 	{ compierStopped           :: Bool
 	, compilerText             :: String
 	, compilerPatterns         :: [SimplifyPattern]
-	, compilerEvalRecords      :: [Tree]
 	} deriving (Eq, Show, Read)
 
+instance Reactor CompilerState CompilerEvent
+	
+
 data CompilerCtx = CompilerCtx
-	{ execThread    :: Maybe CONC.ThreadId
+	{ execThreads   :: IORef [(Int, CONC.ThreadId)]
+	, evalCount     :: Int
 	, ebin          :: EventsBin
 	}
 
-runSimplifications :: CompilerCtx -> CompilerState -> IO (CompilerCtx, CompilerState)
-runSimplifications ctx state = do
+runSimplification :: String -> CompilerCtx -> CompilerState -> IO (CompilerCtx, CompilerState)
+runSimplification line ctx state = do
 
-	case execThread ctx of
-		Just th -> CONC.killThread th
-		Nothing -> return ()
+	newth <- CONC.forkIO safeSimpthread
+	atomicModifyIORef' (execThreads ctx) (\ threads -> ((currentEvalIndex, newth) : threads, ())) -- FIXME: datarace possible - if `newth` finishes too quickly, the removeFunc will do nothing and this thread will hang in list forever
 
-	sendEvent (ebin ctx) ResetEvaluations
+	return (ctx { evalCount = currentEvalIndex }, state)
 
-	newth <- CONC.forkIO $ runSimplificationsThread (ebin ctx) state
-	let newctx = ctx { execThread = Just newth }
-
-	return (newctx, state)
-
-runSimplificationsThread :: EventsBin -> CompilerState -> IO ()
-runSimplificationsThread ebin state = mapM_ forF (compilerEvalRecords state)
 	where
-	mixed = mixedRules (compilerPatterns state)
-	forF tree = do
+	simpthread = runSimplificationThread removeFunc (ebin ctx) (mixedRules (compilerPatterns state)) line
+	safeSimpthread = do
+		x <- try simpthread
+		handleResult x
+
+	handleResult :: Either SomeException () -> IO ()
+	handleResult x = do
+		removeFunc
+		case x of
+			Right () ->
+				return ()
+			Left ex ->
+				sendEvent (ebin ctx) (DebugLog $ "Simplification thread#" ++ show currentEvalIndex ++ " with expr = " ++ line ++ " failed with: " ++ show ex)
+
+	currentEvalIndex = evalCount ctx + 1
+	removeFunc = atomicModifyIORef' (execThreads ctx) modify
+	modify threads = (filter ((/= currentEvalIndex) . fst) threads, ())
+
+runSimplificationThread :: IO () -> EventsBin -> [SimlifyFT] -> String -> IO ()
+runSimplificationThread removeFunc ebin mixed line =
+	case tokens of
+		Left err ->
+			sendEvent ebin (CompilerTokenizeError err)
+		Right oktokens ->
+			withTokens oktokens
+	where
+	tokens = tokenize line
+	withTokens oktokens = do
+		let tree = makeTree (Group oktokens)
 		history <- mixedApplySimplificationsWithPureUntil0Debug mixed simplifyCtxInitial tree
-		sendEvent ebin (PushEvaluation tree (showHistory history))
+		sendEvent ebin (PushEvaluation line (showHistory history))
 
-showHistory :: [(Tree, Either SimplifyPattern String, SimplifyCtx)] -> [(String, String, String)]
-showHistory = map f
-	where
-	f (t, traceElem, ctx) = (stringifyTree t, stringifyTraceElem traceElem, showCtx ctx)
+	showHistory :: [(Tree, Either SimplifyPattern String, SimplifyCtx)] -> [(String, String, String)]
+	showHistory = map f
+		where
+		f (t, traceElem, ctx) = (stringifyTree t, stringifyTraceElem traceElem, showCtx ctx)
