@@ -73,7 +73,8 @@ data CompilerCtx = CompilerCtx
 	, ebin          :: EventsBin
 	}
 
--- compilerProcess :: CompilerState -> [ReaderEvent] -> IO (ReaderState, [Dynamic])
+compilerProcess :: CompilerCtx -> CompilerState -> [CompilerEvent] -> IO (CompilerState, [Dynamic])
+compilerProcess ctx state events = undefined
 
 runSimplification :: String -> CompilerCtx -> CompilerState -> IO CompilerState
 runSimplification line ctx state = do
