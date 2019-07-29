@@ -21,6 +21,7 @@ import PatternT.MonadicRules
 import ICompiler
 import IUI
 import Events
+import Util
 
 type SimplifyMonad = IO
 type SimplifyCtx = ()
@@ -87,11 +88,24 @@ compilerProcess ctx state events0 = do
 			let mpatterns = readPatterns newtext
 			case mpatterns of
 				Left e ->
-					return (state, [toDyn $ CompilerParseError e])
+					loop
+						(appendDyn (CompilerParseError e) buf)
+						state
+						xs
 				Right patterns -> do
 					let newstate = state { compilerText = newtext, compilerPatterns = patterns }
-					-- newstate <- 
-					return (newstate, [])
+					threadsDoall ctx (rerunSimplificationThread ctx patterns)
+					loop
+						(appendDyn (DebugLog "Rule file updated -> rerunning evaluations") buf)
+						newstate
+						xs
+
+		(AppendEvaluation line) -> do
+			runSimplification line ctx (evalCount state) (compilerPatterns state)
+			loop
+				(appendDyn (DebugLog $ "Appended new evaluation: " ++ line) buf)
+				(state { evalCount = evalCount state + 1 })
+				xs
 
 runSimplification :: String -> CompilerCtx -> Int -> [SimplifyPattern] -> IO ()
 runSimplification line ctx currentEvalIndex patterns = do
