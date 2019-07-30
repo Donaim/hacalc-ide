@@ -77,7 +77,7 @@ cmdParse line = do
 	if isEval
 	then Eval line
 	else case prefix of
-		"stop" ->
+		"quit" ->
 			Stop
 		"reset" ->
 			Reset
