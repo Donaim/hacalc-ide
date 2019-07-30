@@ -12,6 +12,6 @@ data UIEvent
 	| CompilerNotify String
 	| DebugLog String
 	| ClearEvaluations
-	| PushEvaluation Int String [(String, String, String)]
+	| PushEvaluation Bool Int String [(String, String, String)]
 	| EvaluationStarted Int
 	deriving (Eq, Show, Read, Typeable)

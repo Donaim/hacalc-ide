@@ -107,7 +107,7 @@ compilerProcess ctx state events0 = do
 					let newstate = state { compilerText = newtext, compilerPatterns = patterns }
 					sendEvent (ebin ctx) (ClearEvaluations)
 					threadsDoall ctx (killRunningSimplification ctx)
-					mapM_ (runSimplification ctx patterns) (currentEvals newstate)
+					mapM_ (runSimplification ctx True patterns) (currentEvals newstate)
 					loop
 						(appendDyn (DebugLog "Rule file updated -> rerunning evaluations") buf)
 						newstate
@@ -116,21 +116,21 @@ compilerProcess ctx state events0 = do
 		(AppendEvaluation line) -> do
 			let record = (evalCount state, line)
 			let newstate = state { evalCount = evalCount state + 1, currentEvals = record : currentEvals state }
-			runSimplification ctx (compilerPatterns state) record
+			runSimplification ctx False (compilerPatterns state) record
 			loop
 				(appendDyn (DebugLog $ "Appended new evaluation: " ++ line) buf)
 				newstate
 				xs
 
-runSimplification :: CompilerCtx -> [SimplifyPattern] -> EvalRecord -> IO ()
-runSimplification ctx patterns (currentEvalIndex, line) = do
+runSimplification :: CompilerCtx -> Bool -> [SimplifyPattern] -> EvalRecord -> IO ()
+runSimplification ctx rerunq patterns (currentEvalIndex, line) = do
 
 	newth <- CONC.forkIO safeSimpthread
 	atomicModifyIORef' (execThreads ctx) (\ threads -> ((currentEvalIndex, line, newth) : threads, ())) -- FIXME: datarace possible - if `newth` finishes too quickly, the removeFunc will do nothing and this thread will hang in list forever
 	sendEvent (ebin ctx) (EvaluationStarted currentEvalIndex)
 
 	where
-	simpthread = runSimplificationThread currentEvalIndex (ebin ctx) (mixedRules patterns) line
+	simpthread = runSimplificationThread (ebin ctx) rerunq (mixedRules patterns) (currentEvalIndex, line)
 	safeSimpthread = do
 		x <- try simpthread
 		handleResult x
@@ -160,7 +160,7 @@ rerunSimplificationThread ctx patterns index = do
 	where
 	todo (id, line, th) = do
 		CONC.killThread th
-		runSimplification ctx patterns (id, line)
+		runSimplification ctx True patterns (id, line)
 
 	modify threads = partition ((== index) . fst3) threads
 
@@ -174,8 +174,8 @@ killRunningSimplification ctx index = do
 
 	modify threads = partition ((/= index) . fst3) threads
 
-runSimplificationThread :: Int -> EventsBin -> [SimlifyFT] -> String -> IO ()
-runSimplificationThread index ebin mixed line =
+runSimplificationThread :: EventsBin -> Bool -> [SimlifyFT] -> EvalRecord -> IO ()
+runSimplificationThread ebin rerunq mixed (index, line) =
 	case tokens of
 		Left err ->
 			sendEvent ebin (CompilerTokenizeError err)
@@ -186,7 +186,7 @@ runSimplificationThread index ebin mixed line =
 	withTokens oktokens = do
 		let tree = makeTree (Group oktokens)
 		history <- mixedApplySimplificationsWithPureUntil0Debug mixed simplifyCtxInitial tree
-		sendEvent ebin (PushEvaluation index line (showHistory history))
+		sendEvent ebin (PushEvaluation rerunq index line (showHistory history))
 
 	showHistory :: [(Tree, Either SimplifyPattern String, SimplifyCtx)] -> [(String, String, String)]
 	showHistory = map f

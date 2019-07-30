@@ -113,7 +113,7 @@ process ctx state events0 = do
 				}
 			loop buf newstate xs
 
-		(PushEvaluation id line history) -> do
+		(PushEvaluation rerunq id line history) -> do
 			let record = (id, line, history)
 			let newstate = state
 				{ currentEvals = record : (currentEvals state)
