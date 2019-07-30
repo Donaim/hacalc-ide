@@ -107,7 +107,7 @@ compilerProcess ctx state events0 = do
 					let newstate = state { compilerText = newtext, compilerPatterns = patterns }
 					sendEvent (ebin ctx) (ResetEvaluations)
 					threadsDoall ctx (killRunningSimplification ctx)
-					mapM_ (runSimplification ctx (compilerPatterns state)) (currentEvals state)
+					mapM_ (runSimplification ctx patterns) (currentEvals newstate)
 					loop
 						(appendDyn (DebugLog "Rule file updated -> rerunning evaluations") buf)
 						newstate
