@@ -63,11 +63,11 @@ newctx ebin state = do
 
 process :: UICtx -> UIState -> [UIEvent] -> IO (UIState, [Dynamic])
 process ctx state events0 = do
-	(newstate, rbuf) <- loop [] state events0
-	when (refreshq newstate) $ do
-		writeEvals (outHandle ctx) (currentEvals newstate)
-	let newstate = newstate { refreshq = False }
-	return (newstate, reverse rbuf)
+	(state1, rbuf) <- loop [] state events0
+	when (refreshq state1) $ do
+		writeEvals (outHandle ctx) (currentEvals state1)
+	let state2 = state1 { refreshq = False }
+	return (state2, reverse rbuf)
 	where
 	loop buf state [] = return (state, buf)
 	loop buf state (x : xs) = case x of
