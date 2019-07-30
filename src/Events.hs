@@ -54,16 +54,20 @@ class (Show r, Read r, Typeable e) => Reactor r e ctx | r -> e, r -> ctx where
 	reactorSaveState :: r -> FilePath -> IO ()
 	reactorSaveState r path = writeFile path (show r)
 
-reactorLoop :: (Reactor r e ctx) => EventsBin -> ctx -> r -> IO r
-reactorLoop ebin ctx state0 = loop state0
+reactorLoop :: (Reactor r e ctx) => EventsBin -> r -> IO r
+reactorLoop ebin state0 = do
+	ctx <- reactorNewCtx ebin state0
+	withctx ctx
 	where
-	loop state = do
-		CONC.threadDelay (reactorDelayMS state * 1000)
-		events <- recieveEvents ebin
-		(newstate, responses) <- reactorProcess ctx state events
+	withctx ctx = loop state0
+		where
+		loop state = do
+			CONC.threadDelay (reactorDelayMS state * 1000)
+			events <- recieveEvents ebin
+			(newstate, responses) <- reactorProcess ctx state events
 
-		unless (null responses) (ioRefStdAdd (ref ebin) (responses))
+			unless (null responses) (ioRefStdAdd (ref ebin) (responses))
 
-		if (reactorStoppedQ state)
-		then return newstate
-		else loop newstate
+			if (reactorStoppedQ state)
+			then return newstate
+			else loop newstate
