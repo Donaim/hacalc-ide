@@ -13,5 +13,18 @@ import ICompiler
 import IUI
 import Events
 
+data CLIState = CLIState
+	{ stopped     :: Bool
+	} deriving (Eq, Show, Read)
 
+instance Reactor CLIState () () where
+	reactorStoppedQ = stopped
+	reactorDelayMS = const 100
+	reactorProcess ctx state events = return (state, [])
+	reactorNewCtx ebin state = return ()
+
+userCLINew :: CLIState
+userCLINew = CLIState
+	{ stopped = False
+	}
 
