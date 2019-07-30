@@ -38,10 +38,9 @@ simpleUINew filepath = UIState
 
 writeEvals :: Handle -> [UIEvalRecord] -> IO ()
 writeEvals handle evals = do
-	trace ("USING EVALS: " ++ show evals) $ writeOut handle text
+	unless (null evals) $ writeOut handle text
 	where
-	-- sorted = sortBy (\ a b -> compare (fst3 a) (fst3 b)) evals
-	sorted = evals
+	sorted = sortBy (\ a b -> compare (fst3 a) (fst3 b)) evals
 	formatted = map formatEval sorted
 	text = unlines formatted
 
