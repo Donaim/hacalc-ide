@@ -18,10 +18,10 @@ type UIEvalRecord = (Int, String, [(String, String, String)])
 data UIState = UIState
 	{ stopped              :: Bool
 	, currentEvals         :: [UIEvalRecord]
-	, longHistory          :: [[UIEvalRecord]]
 	, outfile              :: String
 	, refreshq             :: Bool
 	, tracePadding         :: Int
+	, showLimit            :: Int
 	} deriving (Eq, Show, Read)
 
 data UICtx = UICtx
@@ -32,10 +32,10 @@ simpleUINew :: String -> UIState
 simpleUINew filepath = UIState
 	{ stopped = True
 	, currentEvals = []
-	, longHistory = []
 	, outfile = filepath
 	, refreshq = False
 	, tracePadding = 20
+	, showLimit = 10
 	}
 
 writeEvals :: Handle -> [UIEvalRecord] -> IO ()
@@ -107,7 +107,6 @@ process ctx state events0 = do
 		(ClearEvaluations) -> do
 			let newstate = state
 				{ currentEvals = []
-				, longHistory = (currentEvals state) : (longHistory state)
 				, refreshq = True
 				}
 			loop buf newstate xs
@@ -119,7 +118,8 @@ process ctx state events0 = do
 				, refreshq = True
 				}
 			unless (rerunq) (showTrace (tracePadding newstate) history)
-			loop buf newstate xs
+			let limitedState = newstate { currentEvals = limitEvals newstate }
+			loop buf limitedState xs
 
 		(EvaluationStarted id) -> do
 			stdlog $ "EVALSTARTED: " ++ show id
@@ -137,6 +137,15 @@ process ctx state events0 = do
 			loop buf newstate xs
 
 		where next = loop buf state xs
+
+limitEvals :: UIState -> [UIEvalRecord]
+limitEvals state =
+	if lim > 0 && lim < length cur
+	then reverse $ drop (length cur - lim) (reverse cur)
+	else cur
+	where
+	cur = currentEvals state
+	lim = showLimit state
 
 stdlog :: String -> IO ()
 stdlog text = hPutStrLn stderr text
