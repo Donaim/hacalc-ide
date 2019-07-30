@@ -50,11 +50,14 @@ readPatterns text = do
 mixedRules :: [SimplifyPattern] -> [SimlifyFT]
 mixedRules patterns = map Tuple32 builtinRules ++ map Tuple30 patterns
 
+type EvalRecord = (Int, String)
+
 data CompilerState = CompilerState
-	{ compilerStopped           :: Bool
+	{ compilerStopped          :: Bool
 	, compilerText             :: String
 	, compilerPatterns         :: [SimplifyPattern]
 	, evalCount                :: Int
+	, currentEvals             :: [EvalRecord]
 	} deriving (Eq, Show, Read)
 
 instance Reactor CompilerState CompilerEvent CompilerCtx where
@@ -79,6 +82,7 @@ compilerNew = CompilerState
 	, compilerText = ""
 	, compilerPatterns = []
 	, evalCount = 0
+	, currentEvals = []
 	}
 
 compilerProcess :: CompilerCtx -> CompilerState -> [CompilerEvent] -> IO (CompilerState, [Dynamic])
@@ -102,21 +106,24 @@ compilerProcess ctx state events0 = do
 				Right patterns -> do
 					let newstate = state { compilerText = newtext, compilerPatterns = patterns }
 					sendEvent (ebin ctx) (ResetEvaluations)
-					threadsDoall ctx (rerunSimplificationThread ctx patterns)
+					threadsDoall ctx (killRunningSimplification ctx)
+					mapM_ (runSimplification ctx (compilerPatterns state)) (currentEvals state)
 					loop
 						(appendDyn (DebugLog "Rule file updated -> rerunning evaluations") buf)
 						newstate
 						xs
 
 		(AppendEvaluation line) -> do
-			runSimplification line ctx (evalCount state) (compilerPatterns state)
+			let record = (evalCount state, line)
+			let newstate = state { evalCount = evalCount state + 1, currentEvals = record : currentEvals state }
+			runSimplification ctx (compilerPatterns state) record
 			loop
 				(appendDyn (DebugLog $ "Appended new evaluation: " ++ line) buf)
-				(state { evalCount = evalCount state + 1 })
+				newstate
 				xs
 
-runSimplification :: String -> CompilerCtx -> Int -> [SimplifyPattern] -> IO ()
-runSimplification line ctx currentEvalIndex patterns = do
+runSimplification :: CompilerCtx -> [SimplifyPattern] -> EvalRecord -> IO ()
+runSimplification ctx patterns (currentEvalIndex, line) = do
 
 	newth <- CONC.forkIO safeSimpthread
 	atomicModifyIORef' (execThreads ctx) (\ threads -> ((currentEvalIndex, line, newth) : threads, ())) -- FIXME: datarace possible - if `newth` finishes too quickly, the removeFunc will do nothing and this thread will hang in list forever
@@ -153,7 +160,7 @@ rerunSimplificationThread ctx patterns index = do
 	where
 	todo (id, line, th) = do
 		CONC.killThread th
-		runSimplification line ctx id patterns
+		runSimplification ctx patterns (id, line)
 
 	modify threads = partition ((== index) . fst3) threads
 
