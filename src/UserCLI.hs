@@ -33,7 +33,6 @@ interpretCycle :: CLIState -> IO (CLIState, [Dynamic])
 interpretCycle state = do
 	line <- getLine
 	let r = interpretLine state line
-	putStrLn $ "READ LINE: " ++ line ++ " ; result: " ++ show r
 	return r
 
 interpretLine :: CLIState -> String -> (CLIState, [Dynamic])

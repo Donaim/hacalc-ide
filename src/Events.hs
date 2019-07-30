@@ -20,14 +20,10 @@ eventsBinNew = do
 	return $ EventsBin { ref = r }
 
 sendEvent :: (Typeable a, Show a) => EventsBin -> a -> IO ()
-sendEvent bin event = do
-	putStrLn $ "EVENT SENT: " ++ show event
-	ioRefStdAdd (ref bin) [toDyn event]
+sendEvent bin event = ioRefStdAdd (ref bin) [toDyn event]
 
 sendEvents :: (Typeable a, Show a) => EventsBin -> [a] -> IO ()
-sendEvents bin events = do
-	putStrLn $ "EVENTS SENT: " ++ show events
-	ioRefStdAdd (ref bin) (map toDyn events)
+sendEvents bin events = ioRefStdAdd (ref bin) (map toDyn events)
 
 recieveEvents :: (Typeable a) => EventsBin -> IO [a]
 recieveEvents bin = ioRefStdGet (ref bin) chooser
