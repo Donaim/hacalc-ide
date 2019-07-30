@@ -49,6 +49,7 @@ formatEval (id, line, history) =
 writeOut :: Handle -> String -> IO ()
 writeOut handle text = do
 	hSeek handle AbsoluteSeek 0
+	hSetFileSize handle 0
 	hPutStr handle text
 	hFlush handle
 
