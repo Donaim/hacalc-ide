@@ -54,6 +54,8 @@ interpretLine state line = case cmdParse line of
 		(state, [toDyn $ UIRemoveEvaluation i, toDyn $ CompilerRemoveEvalRecord i])
 	Reset ->
 		(state, [toDyn $ ClearEvaluations, toDyn $ CompilerResetEvaluations])
+	Limit n ->
+		(state, [toDyn $ UIChangeLimit n, toDyn $ CompilerChangeLimit n])
 
 data Cmd
 	= Error String
@@ -62,6 +64,7 @@ data Cmd
 	| Stop
 	| Reset
 	| Remove Int
+	| Limit Int
 	deriving (Eq, Show, Read)
 
 eguard :: Bool -> a -> b -> Either a b
@@ -88,14 +91,30 @@ cmdParse line = do
 
 			let mayben = readMaybe x :: Maybe Int
 			n <- eguard (isNothing mayben)
-				(Error $ ":rm expected positive Int but got " ++ x)
+				(Error $ ":rm expected nonegative Int but got " ++ x)
 				(fromJust mayben)
 
 			n <- eguard (n < 0)
-				(Error $ ":rm expected positive Int but got a negative one: " ++ show n)
+				(Error $ ":rm expected nonegative Int but got a negative one: " ++ show n)
 				(n)
 
 			return $ Remove n
+
+		"limit" -> uneither $ do
+			x <- eguard (null args)
+				(Error $ "rm: expected single argument but got " ++ show (length args))
+				(head args)
+
+			let mayben = readMaybe x :: Maybe Int
+			n <- eguard (isNothing mayben)
+				(Error $ ":rm expected nonegative Int but got " ++ x)
+				(fromJust mayben)
+
+			n <- eguard (n < 0)
+				(Error $ ":rm expected nonegative Int but got a negative one: " ++ show n)
+				(n)
+
+			return $ Limit n
 
 		other ->
 			ErrorNoCmd prefix

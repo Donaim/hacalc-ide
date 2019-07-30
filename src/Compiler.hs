@@ -125,7 +125,7 @@ compilerProcess ctx state events0 = do
 			let newstate = state { evalCount = evalCount state + 1, currentEvals = record : currentEvals state }
 			runSimplification ctx False (compilerPatterns state) record
 
-			limitedRecords <- limitRecords ctx newstate
+			limitedRecords <- limitRecords ctx (evalLimit newstate) (currentEvals newstate)
 			let limitedState = newstate { currentEvals = limitedRecords }
 
 			loop
@@ -143,17 +143,20 @@ compilerProcess ctx state events0 = do
 			threadsDoall ctx (killRunningSimplification ctx)
 			loop buf newstate xs
 
-limitRecords :: CompilerCtx -> CompilerState -> IO [EvalRecord]
-limitRecords ctx state = do
+		(CompilerChangeLimit n) -> do
+			limitedRecords <- limitRecords ctx n (currentEvals state)
+			let limitedState = state { currentEvals = limitedRecords, evalLimit = n }
+			loop buf limitedState xs
+
+limitRecords :: CompilerCtx -> Int -> [EvalRecord] -> IO [EvalRecord]
+limitRecords ctx lim cur = do
 	if lim <= 0 || lim > length cur
-	then return $ currentEvals state
+	then return cur
 	else do
 		let (stay, dropped) = partition lim cur
 		mapM_ (killRunningSimplification ctx . fst) dropped
-		return $ stay
+		return stay
 	where
-	cur = currentEvals state
-	lim = evalLimit state
 	partition n arr = (take n arr, drop n arr)
 
 runSimplification :: CompilerCtx -> Bool -> [SimplifyPattern] -> EvalRecord -> IO ()

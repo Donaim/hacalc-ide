@@ -15,4 +15,5 @@ data UIEvent
 	| EvaluationStarted Int
 	| UISetPadding Int
 	| UIRemoveEvaluation Int
+	| UIChangeLimit Int
 	deriving (Eq, Show, Read, Typeable)

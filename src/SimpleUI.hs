@@ -118,7 +118,7 @@ process ctx state events0 = do
 				, refreshq = True
 				}
 			unless (rerunq) (showTrace (tracePadding newstate) history)
-			let limitedState = newstate { currentEvals = limitEvals newstate }
+			let limitedState = newstate { currentEvals = limitEvals (showLimit newstate) (currentEvals newstate) }
 			loop buf limitedState xs
 
 		(EvaluationStarted id) -> do
@@ -136,16 +136,21 @@ process ctx state events0 = do
 				}
 			loop buf newstate xs
 
+		(UIChangeLimit n) -> do
+			let newstate = state
+				{ showLimit = n
+				, currentEvals = limitEvals n (currentEvals state)
+				, refreshq = True
+				}
+			loop buf newstate xs
+
 		where next = loop buf state xs
 
-limitEvals :: UIState -> [UIEvalRecord]
-limitEvals state =
+limitEvals :: Int -> [UIEvalRecord] -> [UIEvalRecord]
+limitEvals lim cur =
 	if lim > 0 && lim < length cur
 	then take lim cur
 	else cur
-	where
-	cur = currentEvals state
-	lim = showLimit state
 
 stdlog :: String -> IO ()
 stdlog text = hPutStrLn stderr text

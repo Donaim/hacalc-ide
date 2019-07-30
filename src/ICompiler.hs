@@ -9,4 +9,5 @@ data CompilerEvent
 	| AppendEvaluation String
 	| CompilerRemoveEvalRecord Int
 	| CompilerResetEvaluations -- REMOVE ALL
+	| CompilerChangeLimit Int
 	deriving (Eq, Show, Read, Typeable)
