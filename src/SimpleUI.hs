@@ -41,7 +41,10 @@ writeEvals handle evals = do
 formatEval :: EvalRecord -> String
 formatEval (id, line, history) =
 	show id ++ ") " ++ line ++ " -> " ++ result
-	where result = fst3 $ last history
+	where
+	result = case history of
+		[] -> line
+		or -> fst3 $ last history
 
 writeOut :: Handle -> String -> IO ()
 writeOut handle text = do
