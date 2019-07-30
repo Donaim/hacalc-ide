@@ -38,28 +38,30 @@ loadSystem path = do
 		cli <- readMaybe (parts !! 3)
 		return (c, r, ui, cli)
 
-systemRun :: (CompilerState, ReaderState, UIState, CLIState) -> IO String
+systemRun :: (CompilerState, ReaderState, UIState, CLIState) -> IO (CompilerState, ReaderState, UIState, CLIState)
 systemRun (c, r, ui, cli) = do
 	ebin <- eventsBinNew
 	withEbin ebin
 	where
 	withEbin ebin = do
 		x <- CONC.withPool (length actions) (flip parallel actions)
-		return $ show (x !! 0, x !! 1, x !! 2, x !! 3)
+		return (read $ x !! 0, read $ x !! 1, read $ x !! 2, read $ x !! 3)
 		where actions =
-			[ (reactorLoop ebin cli >>= return . show)
-			, (reactorLoop ebin c >>= return . show)
+			[ (reactorLoop ebin c >>= return . show)
 			, (reactorLoop ebin r >>= return . show)
 			, (reactorLoop ebin ui >>= return . show)
+			, (reactorLoop ebin cli >>= return . show)
 			]
 
 newSystemRun :: String -> String -> IO String
 newSystemRun readfile uifile = do
 	states <- newSystem readfile uifile
-	systemRun states
+	r <- systemRun states
+	return $ show r
 
 loadSystemRun :: String -> IO String
 loadSystemRun path = do
-	r <- loadSystem path
-	systemRun r
+	l <- loadSystem path
+	r <- systemRun l
+	return $ show r
 

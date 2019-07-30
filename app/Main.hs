@@ -44,12 +44,12 @@ main = do
 			case sessionfile args of
 				Nothing -> return ()
 				Just file -> do
-					writeFile file (show showed)
+					writeFile file showed
 					putStrLn $ "Session saved to " ++ file
 
 		(Load {}) -> do
 			showed <- loadSystemRun (loadfile args)
-			writeFile (loadfile args) (show showed)
+			writeFile (loadfile args) showed
 			putStrLn $ "Session saved to " ++ (loadfile args)
 
 
