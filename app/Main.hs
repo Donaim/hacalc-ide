@@ -1,4 +1,9 @@
 module Main where
 
+import Initializer
+
 main :: IO ()
-main = putStrLn "Not implemented yet"
+main = do
+	putStrLn "Starting"
+	newSystemRun "rules~" "display~"
+

@@ -4,6 +4,7 @@ module Initializer where
 import Util
 
 import Control.Concurrent as CONC
+import Control.Concurrent.ParallelIO.Local as CONC
 
 import Events
 import SimpleReader
@@ -22,10 +23,18 @@ newSystem readfile uifile = do
 systemRun :: (CompilerState, ReaderState, UIState, CLIState) -> IO ()
 systemRun (c, r, ui, cli) = do
 	ebin <- eventsBinNew
-	CONC.forkIO (reactorLoop ebin c >> return ())
-	CONC.forkIO (reactorLoop ebin r >> return ())
-	CONC.forkIO (reactorLoop ebin ui >> return ())
-	reactorLoop ebin cli >> return ()
+	withEbin ebin
+	return ()
+	where
+	withEbin ebin = do
+		CONC.withPool (length actions) (flip parallel actions)
+		where
+		actions =
+			[ (reactorLoop ebin c >> return ())
+			, (reactorLoop ebin r >> return ())
+			, (reactorLoop ebin ui >> return ())
+			, (reactorLoop ebin cli >> return ())
+			]
 
 newSystemRun :: String -> String -> IO ()
 newSystemRun readfile uifile = do
