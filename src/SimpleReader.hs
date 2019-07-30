@@ -25,6 +25,16 @@ instance Reactor ReaderState ReaderEvent () where
 	reactorProcess ctx = readerProcess
 	reactorNewCtx ebin state = return ()
 
+simpleReaderNew :: String -> IO ReaderState
+simpleReaderNew path =  do
+	curr <- getCurrentTime
+	let r = ReaderState
+		{ readerStopped = False
+		, currentFile = path
+		, modifyTime = curr
+		}
+	return r
+
 readerProcess :: ReaderState -> [ReaderEvent] -> IO (ReaderState, [Dynamic])
 readerProcess reader events = do
 	(state, rbuf) <- readerInterpretEvents reader events

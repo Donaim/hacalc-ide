@@ -73,6 +73,14 @@ newctx ebin state = do
 	ref <- newIORef []
 	return $ CompilerCtx { execThreads = ref, ebin = ebin }
 
+compilerNew :: CompilerState
+compilerNew = CompilerState
+	{ compilerStopped = False
+	, compilerText = ""
+	, compilerPatterns = []
+	, evalCount = 0
+	}
+
 compilerProcess :: CompilerCtx -> CompilerState -> [CompilerEvent] -> IO (CompilerState, [Dynamic])
 compilerProcess ctx state events0 = do
 	(newstate, rbuf) <- loop [] state events0
