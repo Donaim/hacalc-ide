@@ -21,6 +21,7 @@ data UIState = UIState
 	, longHistory          :: [[UIEvalRecord]]
 	, outfile              :: String
 	, refreshq             :: Bool
+	, tracePadding         :: Int
 	} deriving (Eq, Show, Read)
 
 data UICtx = UICtx
@@ -34,6 +35,7 @@ simpleUINew filepath = UIState
 	, longHistory = []
 	, outfile = filepath
 	, refreshq = False
+	, tracePadding = 20
 	}
 
 writeEvals :: Handle -> [UIEvalRecord] -> IO ()
@@ -119,17 +121,21 @@ process ctx state events0 = do
 				{ currentEvals = record : (currentEvals state)
 				, refreshq = True
 				}
-			unless (rerunq) (showTrace history)
+			unless (rerunq) (showTrace (tracePadding newstate) history)
 			loop buf newstate xs
 
 		(EvaluationStarted id) -> do
 			putStrLn $ "EVALSTARTED: " ++ show id
 			next
 
+		(UISetPadding newpadding) -> do
+			let newstate = state { tracePadding = newpadding }
+			loop buf newstate xs
+
 		where next = loop buf state xs
 
-showTrace ::  [(String, String, String)] -> IO ()
-showTrace history = putStrLn reductions
+showTrace :: Int -> [(String, String, String)] -> IO ()
+showTrace pad history = putStrLn reductions
 	where
 	reductions = unlines (map showReduction history)
-	showReduction (tree, rule, ctx) = "\t" ++ (padLeft ' ' 80 tree) ++ " [using] " ++ rule ++ " while ctx = " ++ ctx
+	showReduction (tree, rule, ctx) = "\t" ++ (padLeft ' ' pad tree) ++ " [using] " ++ rule ++ " while ctx = " ++ ctx

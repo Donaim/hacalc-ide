@@ -14,4 +14,5 @@ data UIEvent
 	| ClearEvaluations
 	| PushEvaluation Bool Int String [(String, String, String)]
 	| EvaluationStarted Int
+	| UISetPadding Int
 	deriving (Eq, Show, Read, Typeable)
