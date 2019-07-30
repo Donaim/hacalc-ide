@@ -10,9 +10,9 @@ import Data.Data
 import Initializer
 
 data ArgsT
-	= New 
+	= New
 	{ rulefile :: String
-	, displayfile :: String 
+	, displayfile :: String
 	, sessionfile :: Maybe String
 	}
 	| Load
@@ -20,7 +20,7 @@ data ArgsT
 	}
 	deriving (Show, Data, Typeable)
 
-new = New 
+new = New
 	{ rulefile = def &= argPos 0 &= typ "rulefile"
 	, displayfile = def &= argPos 1 &= typ "displayfile"
 	, sessionfile = def &= typ "path"

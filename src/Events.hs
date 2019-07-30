@@ -38,7 +38,7 @@ ioRefStdGet ref chooser = atomicModifyIORef' ref (modify . partitionEithers . ma
 	where modify (left, right) = (if null left then [] else [left], right)
 
 ioRefStdAdd :: IORef [[a]] -> [a] -> IO ()
-ioRefStdAdd ref new = 
+ioRefStdAdd ref new =
 	if null new
 	then return ()
 	else atomicModifyIORef' ref (\ all -> (all ++ [new], ())) -- TODO: append in O(1)
