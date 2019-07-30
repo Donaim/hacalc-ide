@@ -1,3 +1,3 @@
-# Changelog for hacalc-rules
+# Changelog for patternt-ide
 
 ## Unreleased changes
