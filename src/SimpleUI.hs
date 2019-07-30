@@ -38,17 +38,17 @@ simpleUINew filepath = UIState
 	, showLimit = 10  -- ASSUMPTION: Must be the same as Compiler's `evalLimit`
 	}
 
-writeEvals :: Handle -> [UIEvalRecord] -> IO ()
-writeEvals handle evals = do
+writeEvals :: Int -> Handle -> [UIEvalRecord] -> IO ()
+writeEvals pad handle evals = do
 	writeOut handle text
 	where
 	sorted = sortBy (\ a b -> compare (fst3 a) (fst3 b)) evals
-	formatted = map formatEval sorted
+	formatted = map (formatEval pad) sorted
 	text = unlines formatted
 
-formatEval :: UIEvalRecord -> String
-formatEval (id, line, history) =
-	(padLeft ' ' 6 (show id ++ ")")) ++ line ++ " -> " ++ result
+formatEval :: Int -> UIEvalRecord -> String
+formatEval pad (id, line, history) =
+	(padLeft ' ' 6 (show id ++ ")")) ++ (padLeft ' ' pad line) ++ " -> " ++ result
 	where
 	result = case history of
 		[] -> line
@@ -78,7 +78,7 @@ process :: UICtx -> UIState -> [UIEvent] -> IO (UIState, [Dynamic])
 process ctx state events0 = do
 	(state1, rbuf) <- loop [] state events0
 	when (refreshq state1) $ do
-		writeEvals (outHandle ctx) (currentEvals state1)
+		writeEvals (tracePadding state1) (outHandle ctx) (currentEvals state1)
 	let state2 = state1 { refreshq = False }
 	return (state2, reverse rbuf)
 	where
