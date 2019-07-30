@@ -4,6 +4,7 @@ module SimpleUI where
 import Data.Dynamic
 import System.IO
 import Control.Monad
+import Data.List
 
 import PatternT.All
 import Events
@@ -35,8 +36,11 @@ simpleUINew filepath = UIState
 
 writeEvals :: Handle -> [EvalRecord] -> IO ()
 writeEvals handle evals = do
-	let formatted = unlines $ map formatEval (reverse evals)
-	writeOut handle formatted
+	writeOut handle text
+	where
+	sorted = sortBy (\ a b -> compare (fst3 a) (fst3 b)) evals
+	formatted = map formatEval sorted
+	text = unlines formatted
 
 formatEval :: EvalRecord -> String
 formatEval (id, line, history) =
