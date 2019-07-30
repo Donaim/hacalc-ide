@@ -3,6 +3,7 @@ module Compiler where
 
 import Data.Either
 import Data.List
+import Data.Char
 import Control.Monad
 import Data.IORef
 import Data.Dynamic
@@ -42,10 +43,13 @@ readPatterns text = do
 	return okRules
 	where
 	lines       = splitLines text
-	mrules      = map parseMatch lines
+	filtered    = filter (not . isWhiteSpace) lines
+	mrules      = map parseMatch filtered
 	partitioned = partitionEithers mrules
 	okRules     = snd partitioned
 	badRules    = fst partitioned
+
+	isWhiteSpace str = all isSpace str
 
 mixedRules :: [SimplifyPattern] -> [SimlifyFT]
 mixedRules patterns = map Tuple32 builtinRules ++ map Tuple30 patterns
