@@ -6,6 +6,7 @@ import Control.Concurrent as CONC
 import Control.Concurrent.ParallelIO.Local as CONC
 import Text.Read (readMaybe)
 import Control.Monad
+import Data.Dynamic
 
 import Util
 import Events
@@ -43,14 +44,15 @@ systemRun (c, r, ui, cli) = do
 	ebin <- eventsBinNew
 	withEbin ebin
 	where
+	castn x n = fromDyn (x !! n) (error $ "COULD NOT CAST " ++ show x)
 	withEbin ebin = do
 		x <- CONC.withPool (length actions) (flip parallel actions)
-		return (read $ x !! 0, read $ x !! 1, read $ x !! 2, read $ x !! 3)
+		return (castn x 0, castn x 1, castn x 2, castn x 3)
 		where actions =
-			[ (reactorLoop ebin c >>= return . show)
-			, (reactorLoop ebin r >>= return . show)
-			, (reactorLoop ebin ui >>= return . show)
-			, (reactorLoop ebin cli >>= return . show)
+			[ (reactorLoop ebin c >>= return . toDyn)
+			, (reactorLoop ebin r >>= return . toDyn)
+			, (reactorLoop ebin ui >>= return . toDyn)
+			, (reactorLoop ebin cli >>= return . toDyn)
 			]
 
 newSystemRun :: String -> String -> IO String
