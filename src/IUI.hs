@@ -8,11 +8,11 @@ data UIEvent
 	= UIStopEvent
 	| CompilerParseError [ParseMatchError]
 	| CompilerTokenizeError ParseError
-	| ReaderNotify String
-	| CompilerNotify String
+	| Notify String
 	| DebugLog String
 	| ClearEvaluations
 	| PushEvaluation Bool Int String [(String, String, String)]
 	| EvaluationStarted Int
 	| UISetPadding Int
+	| RemoveEvaluation Int
 	deriving (Eq, Show, Read, Typeable)

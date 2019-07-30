@@ -7,4 +7,5 @@ data CompilerEvent
 	= CompilerStopEvent
 	| SourceFileUpdated String
 	| AppendEvaluation String
+	| CompilerRemoveEvalRecord Int
 	deriving (Eq, Show, Read, Typeable)

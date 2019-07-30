@@ -9,6 +9,7 @@ import Data.List
 import PatternT.All
 import Events
 import Util
+import ICompiler
 import IUI
 
 import Debug.Trace
@@ -96,12 +97,8 @@ process ctx state events0 = do
 			stdlog $ "TOKENIZE ERROR: " ++ show x
 			next
 
-		(ReaderNotify notify) -> do
-			stdlog $ "READER: " ++ notify
-			next
-
-		(CompilerNotify notify) -> do
-			stdlog $ "COMPILER: " ++ notify
+		(Notify message) -> do
+			stdlog message
 			next
 
 		(DebugLog log) -> do
@@ -132,6 +129,13 @@ process ctx state events0 = do
 		(UISetPadding newpadding) -> do
 			let newstate = state { tracePadding = newpadding }
 			loop buf newstate xs
+
+		(RemoveEvaluation i) -> do
+			let newstate = state
+				{ currentEvals = (filter ((/= i) . fst3) (currentEvals state))
+				, refreshq = True
+				}
+			loop (appendDyn (CompilerRemoveEvalRecord i) buf) newstate xs
 
 		where next = loop buf state xs
 

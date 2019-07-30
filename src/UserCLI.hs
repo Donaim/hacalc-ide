@@ -39,12 +39,19 @@ interpretCycle state = do
 	return r
 
 interpretLine :: CLIState -> String -> (CLIState, [Dynamic])
-interpretLine state line = case line of
-	":stop" ->
+interpretLine state line = case cmdParse line of
+	Stop ->
 		(state { stopped = True }, [toDyn $ CompilerStopEvent, toDyn $ ReaderStopEvent, toDyn $ UIStopEvent])
-
-	(_) ->
+	Eval line ->
 		(state, [toDyn $ AppendEvaluation line])
+
+	Error s -> do
+		(state, [toDyn $ Notify $ "Error: " ++ s])
+	ErrorNoCmd s ->
+		(state, [toDyn $ Notify $ "Command " ++ show s ++ " does not exists"])
+
+	Remove i ->
+		(state, [toDyn $ RemoveEvaluation i])
 
 data Cmd
 	= Error String
@@ -52,7 +59,6 @@ data Cmd
 	| Eval String
 	| Stop
 	| Remove Int
-	| Help
 	deriving (Eq, Show, Read)
 
 eguard :: Bool -> a -> b -> Either a b
@@ -70,20 +76,18 @@ cmdParse line = do
 	else case prefix of
 		"stop" ->
 			Stop
-		"help" ->
-			Help
 		"rm" -> uneither $ do
 			x <- eguard (null args)
-				(Error $ "Expected single argument for :rm but got " ++ show (length args))
+				(Error $ "rm: expected single argument but got " ++ show (length args))
 				(head args)
 
 			let mayben = readMaybe x :: Maybe Int
 			n <- eguard (isNothing mayben)
-				(Error $ ":rm expected positive Int, but got " ++ x)
+				(Error $ ":rm expected positive Int but got " ++ x)
 				(fromJust mayben)
 
 			n <- eguard (n < 0)
-				(Error $ ":rm expected positive Int, but got a negative one: " ++ show n)
+				(Error $ ":rm expected positive Int but got a negative one: " ++ show n)
 				(n)
 
 			return $ Remove n
