@@ -24,20 +24,14 @@ data UICtx = UICtx
 	{ outHandle :: Handle
 	}
 
-simpleUINew :: String -> IO (UICtx, UIState)
-simpleUINew filepath = do
-	handle <- openFile filepath WriteMode
-	let state = UIState
-		{ stopped = False
-		, currentEvals = []
-		, longHistory = []
-		, outfile = filepath
-		, refreshq = False
-		}
-	let ctx = UICtx
-		{ outHandle = handle
-		}
-	return (ctx, state)
+simpleUINew :: String -> UIState
+simpleUINew filepath = UIState
+	{ stopped = False
+	, currentEvals = []
+	, longHistory = []
+	, outfile = filepath
+	, refreshq = False
+	}
 
 writeEvals :: Handle -> [EvalRecord] -> IO ()
 writeEvals handle evals = do
@@ -60,6 +54,12 @@ instance Reactor UIState UIEvent UICtx where
 	reactorDelayMS = const 100
 
 	reactorProcess = process
+	reactorNewCtx = newctx
+
+newctx :: EventsBin -> UIState -> IO UICtx
+newctx ebin state = do
+	handle <- openFile (outfile state) WriteMode
+	return $ UICtx { outHandle = handle }
 
 process :: UICtx -> UIState -> [UIEvent] -> IO (UIState, [Dynamic])
 process ctx state events0 = do

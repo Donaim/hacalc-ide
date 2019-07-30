@@ -61,11 +61,17 @@ instance Reactor CompilerState CompilerEvent CompilerCtx where
 	reactorStoppedQ = compilerStopped
 	reactorDelayMS = const 100
 	reactorProcess = compilerProcess
+	reactorNewCtx = newctx
 
 data CompilerCtx = CompilerCtx
 	{ execThreads   :: IORef [(Int, String, CONC.ThreadId)]
 	, ebin          :: EventsBin
 	}
+
+newctx :: EventsBin -> CompilerState -> IO CompilerCtx
+newctx ebin state = do
+	ref <- newIORef []
+	return $ CompilerCtx { execThreads = ref, ebin = ebin }
 
 compilerProcess :: CompilerCtx -> CompilerState -> [CompilerEvent] -> IO (CompilerState, [Dynamic])
 compilerProcess ctx state events0 = do

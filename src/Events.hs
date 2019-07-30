@@ -42,8 +42,9 @@ ioRefStdAdd ref new =
 class (Show r, Read r, Typeable e) => Reactor r e ctx | r -> e, r -> ctx where
 	reactorStoppedQ  :: r -> Bool
 	reactorDelayMS   :: r -> Int
-
 	reactorProcess   :: ctx -> r -> [e] -> IO (r, [Dynamic])
+
+	reactorNewCtx :: EventsBin -> r -> IO ctx
 
 	reactorLoadState :: FilePath -> IO r
 	reactorLoadState path = do

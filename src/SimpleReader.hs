@@ -23,6 +23,7 @@ instance Reactor ReaderState ReaderEvent () where
 	reactorStoppedQ = readerStopped
 	reactorDelayMS = const 100
 	reactorProcess ctx = readerProcess
+	reactorNewCtx ebin state = return ()
 
 readerProcess :: ReaderState -> [ReaderEvent] -> IO (ReaderState, [Dynamic])
 readerProcess reader events = do
