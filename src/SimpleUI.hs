@@ -88,23 +88,23 @@ process ctx state events0 = do
 			return (newstate, buf)
 
 		(CompilerParseError errs) -> do
-			putStrLn $ "PARSE ERROR: " ++ show x
+			stdlog $ "PARSE ERROR: " ++ show x
 			next
 
 		(CompilerTokenizeError err) -> do
-			putStrLn $ "TOKENIZE ERROR: " ++ show x
+			stdlog $ "TOKENIZE ERROR: " ++ show x
 			next
 
 		(ReaderNotify notify) -> do
-			putStrLn $ "READER: " ++ notify
+			stdlog $ "READER: " ++ notify
 			next
 
 		(CompilerNotify notify) -> do
-			putStrLn $ "COMPILER: " ++ notify
+			stdlog $ "COMPILER: " ++ notify
 			next
 
 		(DebugLog log) -> do
-			putStrLn $ "LOG: " ++ log
+			stdlog $ "LOG: " ++ log
 			next
 
 		(ClearEvaluations) -> do
@@ -125,7 +125,7 @@ process ctx state events0 = do
 			loop buf newstate xs
 
 		(EvaluationStarted id) -> do
-			putStrLn $ "EVALSTARTED: " ++ show id
+			stdlog $ "EVALSTARTED: " ++ show id
 			next
 
 		(UISetPadding newpadding) -> do
@@ -133,6 +133,9 @@ process ctx state events0 = do
 			loop buf newstate xs
 
 		where next = loop buf state xs
+
+stdlog :: String -> IO ()
+stdlog text = hPutStrLn stderr text
 
 showTrace :: Int -> [(String, String, String)] -> IO ()
 showTrace pad history = putStrLn reductions
