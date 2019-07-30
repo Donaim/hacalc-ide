@@ -51,13 +51,16 @@ interpretLine state line = case cmdParse line of
 		(state, [toDyn $ Notify $ "Command " ++ show s ++ " does not exists"])
 
 	Remove i ->
-		(state, [toDyn $ RemoveEvaluation i])
+		(state, [toDyn $ UIRemoveEvaluation i, toDyn $ CompilerRemoveEvalRecord i])
+	Reset ->
+		(state, [toDyn $ ClearEvaluations, toDyn $ CompilerResetEvaluations])
 
 data Cmd
 	= Error String
 	| ErrorNoCmd String
 	| Eval String
 	| Stop
+	| Reset
 	| Remove Int
 	deriving (Eq, Show, Read)
 
@@ -76,6 +79,8 @@ cmdParse line = do
 	else case prefix of
 		"stop" ->
 			Stop
+		"reset" ->
+			Reset
 		"rm" -> uneither $ do
 			x <- eguard (null args)
 				(Error $ "rm: expected single argument but got " ++ show (length args))

@@ -8,4 +8,5 @@ data CompilerEvent
 	| SourceFileUpdated String
 	| AppendEvaluation String
 	| CompilerRemoveEvalRecord Int
+	| CompilerResetEvaluations -- REMOVE ALL
 	deriving (Eq, Show, Read, Typeable)

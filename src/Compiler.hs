@@ -132,6 +132,11 @@ compilerProcess ctx state events0 = do
 			killRunningSimplification ctx i
 			loop buf newstate xs
 
+		(CompilerResetEvaluations) -> do
+			let newstate = state { currentEvals = [] }
+			threadsDoall ctx (killRunningSimplification ctx)
+			loop buf newstate xs
+
 runSimplification :: CompilerCtx -> Bool -> [SimplifyPattern] -> EvalRecord -> IO ()
 runSimplification ctx rerunq patterns (currentEvalIndex, line) = do
 
