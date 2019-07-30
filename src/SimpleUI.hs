@@ -141,4 +141,4 @@ showTrace :: Int -> [(String, String, String)] -> IO ()
 showTrace pad history = putStrLn reductions
 	where
 	reductions = unlines (map showReduction history)
-	showReduction (tree, rule, ctx) = "\t" ++ (padLeft ' ' pad tree) ++ " [using] " ++ rule ++ " while ctx = " ++ ctx
+	showReduction (tree, rule, ctx) = "\t" ++ (padLeft ' ' pad tree) ++ " [using] " ++ rule
