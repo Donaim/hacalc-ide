@@ -48,7 +48,7 @@ writeEvals handle evals = do
 
 formatEval :: UIEvalRecord -> String
 formatEval (id, line, history) =
-	show id ++ ") " ++ line ++ " -> " ++ result
+	(padLeft ' ' 6 (show id ++ ")")) ++ line ++ " -> " ++ result
 	where
 	result = case history of
 		[] -> line
