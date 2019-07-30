@@ -11,6 +11,7 @@ import PatternT.All
 
 import ICompiler
 import IUI
+import IReader
 import Events
 
 data CLIState = CLIState
@@ -36,7 +37,7 @@ interpretCycle state = do
 interpretLine :: CLIState -> String -> (CLIState, [Dynamic])
 interpretLine state line = case line of
 	":stop" ->
-		(state { stopped = True }, [])
+		(state { stopped = True }, [toDyn $ CompilerStopEvent, toDyn $ ReaderStopEvent, toDyn $ UIStopEvent])
 
 	(_) ->
 		(state, [toDyn $ AppendEvaluation line])
