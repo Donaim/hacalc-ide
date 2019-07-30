@@ -13,12 +13,12 @@ import IUI
 
 import Debug.Trace
 
-type EvalRecord = (Int, String, [(String, String, String)])
+type UIEvalRecord = (Int, String, [(String, String, String)])
 
 data UIState = UIState
 	{ stopped              :: Bool
-	, currentEvals         :: [EvalRecord]
-	, longHistory          :: [[EvalRecord]]
+	, currentEvals         :: [UIEvalRecord]
+	, longHistory          :: [[UIEvalRecord]]
 	, outfile              :: String
 	, refreshq             :: Bool
 	} deriving (Eq, Show, Read)
@@ -36,7 +36,7 @@ simpleUINew filepath = UIState
 	, refreshq = False
 	}
 
-writeEvals :: Handle -> [EvalRecord] -> IO ()
+writeEvals :: Handle -> [UIEvalRecord] -> IO ()
 writeEvals handle evals = do
 	trace ("USING EVALS: " ++ show evals) $ writeOut handle text
 	where
@@ -45,7 +45,7 @@ writeEvals handle evals = do
 	formatted = map formatEval sorted
 	text = unlines formatted
 
-formatEval :: EvalRecord -> String
+formatEval :: UIEvalRecord -> String
 formatEval (id, line, history) =
 	show id ++ ") " ++ line ++ " -> " ++ result
 	where
