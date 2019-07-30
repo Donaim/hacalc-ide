@@ -99,7 +99,7 @@ process ctx state events0 = do
 			putStrLn $ "LOG: " ++ log
 			next
 
-		(ResetEvaluations) -> do
+		(ClearEvaluations) -> do
 			let newstate = state
 				{ currentEvals = []
 				, longHistory = (currentEvals state) : (longHistory state)

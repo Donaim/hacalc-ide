@@ -105,7 +105,7 @@ compilerProcess ctx state events0 = do
 						xs
 				Right patterns -> do
 					let newstate = state { compilerText = newtext, compilerPatterns = patterns }
-					sendEvent (ebin ctx) (ResetEvaluations)
+					sendEvent (ebin ctx) (ClearEvaluations)
 					threadsDoall ctx (killRunningSimplification ctx)
 					mapM_ (runSimplification ctx patterns) (currentEvals newstate)
 					loop

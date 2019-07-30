@@ -11,7 +11,7 @@ data UIEvent
 	| ReaderNotify String
 	| CompilerNotify String
 	| DebugLog String
-	| ResetEvaluations
+	| ClearEvaluations
 	| PushEvaluation Int String [(String, String, String)]
 	| EvaluationStarted Int
 	deriving (Eq, Show, Read, Typeable)
