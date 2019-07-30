@@ -3,6 +3,9 @@ module Initializer where
 
 import Util
 
+import Control.Concurrent as CONC
+
+import Events
 import SimpleReader
 import SimpleUI
 import Compiler
@@ -18,6 +21,14 @@ newSystem readfile uifile = do
 
 systemRun :: (CompilerState, ReaderState, UIState, CLIState) -> IO ()
 systemRun (c, r, ui, cli) = do
-	undefined
+	ebin <- eventsBinNew
+	CONC.forkIO (reactorLoop ebin c >> return ())
+	CONC.forkIO (reactorLoop ebin r >> return ())
+	CONC.forkIO (reactorLoop ebin ui >> return ())
+	reactorLoop ebin cli >> return ()
 
+newSystemRun :: String -> String -> IO ()
+newSystemRun readfile uifile = do
+	states <- newSystem readfile uifile
+	systemRun states
 
