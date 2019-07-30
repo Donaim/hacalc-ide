@@ -21,7 +21,7 @@ data UIState = UIState
 	, outfile              :: String
 	, refreshq             :: Bool
 	, tracePadding         :: Int
-	, showLimit            :: Int
+	, showLimit            :: Int  -- ASSUMPTION: Must be the same as Compiler's `evalLimit`
 	} deriving (Eq, Show, Read)
 
 data UICtx = UICtx
@@ -35,7 +35,7 @@ simpleUINew filepath = UIState
 	, outfile = filepath
 	, refreshq = False
 	, tracePadding = 20
-	, showLimit = 10
+	, showLimit = 10  -- ASSUMPTION: Must be the same as Compiler's `evalLimit`
 	}
 
 writeEvals :: Handle -> [UIEvalRecord] -> IO ()
@@ -141,7 +141,7 @@ process ctx state events0 = do
 limitEvals :: UIState -> [UIEvalRecord]
 limitEvals state =
 	if lim > 0 && lim < length cur
-	then reverse $ drop (length cur - lim) (reverse cur)
+	then take lim cur
 	else cur
 	where
 	cur = currentEvals state

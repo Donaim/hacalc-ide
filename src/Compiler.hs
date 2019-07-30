@@ -62,6 +62,7 @@ data CompilerState = CompilerState
 	, compilerPatterns         :: [SimplifyPattern]
 	, evalCount                :: Int
 	, currentEvals             :: [EvalRecord]
+	, evalLimit                :: Int -- ASSUMPTION: Must be the same as UI's `showLimit`
 	} deriving (Eq, Show, Read)
 
 instance Reactor CompilerState CompilerEvent CompilerCtx where
@@ -88,6 +89,7 @@ compilerNew = CompilerState
 	, compilerPatterns = []
 	, evalCount = 0
 	, currentEvals = []
+	, evalLimit = 10 -- ASSUMPTION: Must be the same as UI's `showLimit`
 	}
 
 compilerProcess :: CompilerCtx -> CompilerState -> [CompilerEvent] -> IO (CompilerState, [Dynamic])
@@ -122,9 +124,13 @@ compilerProcess ctx state events0 = do
 			let record = (evalCount state, line)
 			let newstate = state { evalCount = evalCount state + 1, currentEvals = record : currentEvals state }
 			runSimplification ctx False (compilerPatterns state) record
+
+			limitedRecords <- limitRecords ctx newstate
+			let limitedState = newstate { currentEvals = limitedRecords }
+
 			loop
 				(appendDyn (DebugLog $ "Appended new evaluation: " ++ line) buf)
-				newstate
+				limitedState
 				xs
 
 		(CompilerRemoveEvalRecord i) -> do
@@ -136,6 +142,19 @@ compilerProcess ctx state events0 = do
 			let newstate = state { currentEvals = [] }
 			threadsDoall ctx (killRunningSimplification ctx)
 			loop buf newstate xs
+
+limitRecords :: CompilerCtx -> CompilerState -> IO [EvalRecord]
+limitRecords ctx state = do
+	if lim <= 0 || lim > length cur
+	then return $ currentEvals state
+	else do
+		let (stay, dropped) = partition lim cur
+		mapM_ (killRunningSimplification ctx . fst) dropped
+		return $ stay
+	where
+	cur = currentEvals state
+	lim = evalLimit state
+	partition n arr = (take n arr, drop n arr)
 
 runSimplification :: CompilerCtx -> Bool -> [SimplifyPattern] -> EvalRecord -> IO ()
 runSimplification ctx rerunq patterns (currentEvalIndex, line) = do
