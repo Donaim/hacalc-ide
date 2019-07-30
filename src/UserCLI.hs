@@ -1,7 +1,9 @@
 
 module UserCLI where
 
+import Text.Read (readMaybe)
 import Data.Either
+import Data.Maybe
 import Control.Monad
 import Data.IORef
 import Data.Dynamic
@@ -43,4 +45,55 @@ interpretLine state line = case line of
 
 	(_) ->
 		(state, [toDyn $ AppendEvaluation line])
+
+data Cmd
+	= Error String
+	| ErrorNoCmd String
+	| Eval String
+	| Stop
+	| Remove Int
+	| Help
+	deriving (Eq, Show, Read)
+
+eguard :: Bool -> a -> b -> Either a b
+eguard bad a b = if bad then Left a else Right b
+
+uneither :: Either x x -> x
+uneither x = case x of
+	Left a -> a
+	Right b -> b
+
+cmdParse :: String -> Cmd
+cmdParse line = do
+	if isEval
+	then Eval line
+	else case prefix of
+		"stop" ->
+			Stop
+		"help" ->
+			Help
+		"rm" -> uneither $ do
+			x <- eguard (null args)
+				(Error $ "Expected single argument for :rm but got " ++ show (length args))
+				(head args)
+
+			let mayben = readMaybe x :: Maybe Int
+			n <- eguard (isNothing mayben)
+				(Error $ ":rm expected positive Int, but got " ++ x)
+				(fromJust mayben)
+
+			n <- eguard (n < 0)
+				(Error $ ":rm expected positive Int, but got a negative one: " ++ show n)
+				(n)
+
+			return $ Remove n
+
+		other ->
+			ErrorNoCmd prefix
+
+	where
+	split = words line
+	isEval = head line /= ':'
+	prefix = tail (head split)
+	args = tail split
 
