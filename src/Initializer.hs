@@ -30,10 +30,10 @@ systemRun (c, r, ui, cli) = do
 		CONC.withPool (length actions) (flip parallel actions)
 		where
 		actions =
-			[ (reactorLoop ebin c >> return ())
+			[ (reactorLoop ebin cli >> return ())
+			, (reactorLoop ebin c >> return ())
 			, (reactorLoop ebin r >> return ())
 			, (reactorLoop ebin ui >> return ())
-			, (reactorLoop ebin cli >> return ())
 			]
 
 newSystemRun :: String -> String -> IO ()
