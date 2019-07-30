@@ -11,6 +11,8 @@ import Events
 import Util
 import IUI
 
+import Debug.Trace
+
 type EvalRecord = (Int, String, [(String, String, String)])
 
 data UIState = UIState
@@ -36,9 +38,10 @@ simpleUINew filepath = UIState
 
 writeEvals :: Handle -> [EvalRecord] -> IO ()
 writeEvals handle evals = do
-	writeOut handle text
+	trace ("USING EVALS: " ++ show evals) $ writeOut handle text
 	where
-	sorted = sortBy (\ a b -> compare (fst3 a) (fst3 b)) evals
+	-- sorted = sortBy (\ a b -> compare (fst3 a) (fst3 b)) evals
+	sorted = evals
 	formatted = map formatEval sorted
 	text = unlines formatted
 
