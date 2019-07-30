@@ -19,11 +19,18 @@ data ReaderState = ReaderState
 	, modifyTime    :: UTCTime
 	} deriving (Eq, Show, Read)
 
-instance Reactor ReaderState ReaderEvent () where
+instance Reactor ReaderState ReaderEvent EventsBin where
 	reactorStoppedQ = readerStopped
 	reactorDelayMS = const 100
 	reactorProcess ctx = readerProcess
-	reactorNewCtx ebin state = return ()
+	reactorNewCtx ebin state = return ebin
+	reactorInit = readerInit
+
+readerInit :: EventsBin -> ReaderState -> IO ReaderState
+readerInit ebin state = do
+	text <- readFile (currentFile state)
+	sendEvent ebin (SourceFileUpdated text)
+	return state
 
 simpleReaderNew :: String -> IO ReaderState
 simpleReaderNew path =  do

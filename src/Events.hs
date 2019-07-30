@@ -55,6 +55,9 @@ class (Show r, Read r, Typeable e) => Reactor r e ctx | r -> e, r -> ctx where
 
 	reactorNewCtx :: EventsBin -> r -> IO ctx
 
+	reactorInit :: ctx -> r -> IO r
+	reactorInit ctx r = return r
+
 	reactorLoadState :: FilePath -> IO r
 	reactorLoadState path = do
 		txt <- readFile path
@@ -66,9 +69,10 @@ class (Show r, Read r, Typeable e) => Reactor r e ctx | r -> e, r -> ctx where
 reactorLoop :: (Reactor r e ctx) => EventsBin -> r -> IO r
 reactorLoop ebin state0 = do
 	ctx <- reactorNewCtx ebin state0
-	withctx ctx
+	inited <- reactorInit ctx state0
+	with_init ctx inited
 	where
-	withctx ctx = loop state0
+	with_init ctx inited = loop inited
 		where
 		loop state = do
 			CONC.threadDelay (reactorDelayMS state * 1000)
