@@ -172,7 +172,7 @@ killRunningSimplification ctx index = do
 	todo (id, line, th) = do
 		CONC.killThread th
 
-	modify threads = partition ((== index) . fst3) threads
+	modify threads = partition ((/= index) . fst3) threads
 
 runSimplificationThread :: Int -> EventsBin -> [SimlifyFT] -> String -> IO ()
 runSimplificationThread index ebin mixed line =
