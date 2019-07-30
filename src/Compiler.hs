@@ -4,6 +4,7 @@ module Compiler where
 import Data.Either
 import Control.Monad
 import Data.Dynamic
+import Control.Concurrent.ParallelIO.Local as Parallel
 
 import PatternT.Types
 import PatternT.Util
@@ -51,3 +52,8 @@ data CompilerState = CompilerState
 	, compilerPatterns         :: [SimplifyPattern]
 	, compilerEvalRecords      :: [(Tree, Maybe Tree)]
 	} deriving (Eq, Show, Read)
+
+runSimplifications :: Parallel.Pool -> CompilerState -> IO CompilerState
+runSimplifications pool state = undefined
+	where
+
