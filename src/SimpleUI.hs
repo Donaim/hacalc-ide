@@ -35,7 +35,7 @@ simpleUINew filepath = UIState
 	, outfile = filepath
 	, refreshq = False
 	, tracePadding = 20
-	, showLimit = 10  -- ASSUMPTION: Must be the same as Compiler's `evalLimit`
+	, showLimit = 1  -- ASSUMPTION: Must be the same as Compiler's `evalLimit`
 	}
 
 writeEvals :: Int -> Handle -> [UIEvalRecord] -> IO ()

@@ -89,7 +89,7 @@ compilerNew = CompilerState
 	, compilerPatterns = []
 	, evalCount = 0
 	, currentEvals = []
-	, evalLimit = 10 -- ASSUMPTION: Must be the same as UI's `showLimit`
+	, evalLimit = 1 -- ASSUMPTION: Must be the same as UI's `showLimit`
 	}
 
 compilerProcess :: CompilerCtx -> CompilerState -> [CompilerEvent] -> IO (CompilerState, [Dynamic])
