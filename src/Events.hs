@@ -19,11 +19,15 @@ eventsBinNew = do
 	r <- newIORef []
 	return $ EventsBin { ref = r }
 
-sendEvent :: (Typeable a) => EventsBin -> a -> IO ()
-sendEvent bin event = ioRefStdAdd (ref bin) [toDyn event]
+sendEvent :: (Typeable a, Show a) => EventsBin -> a -> IO ()
+sendEvent bin event = do
+	putStrLn $ "EVENT SENT: " ++ show event
+	ioRefStdAdd (ref bin) [toDyn event]
 
-sendEvents :: (Typeable a) => EventsBin -> [a] -> IO ()
-sendEvents bin events = ioRefStdAdd (ref bin) (map toDyn events)
+sendEvents :: (Typeable a, Show a) => EventsBin -> [a] -> IO ()
+sendEvents bin events = do
+	putStrLn $ "EVENTS SENT: " ++ show events
+	ioRefStdAdd (ref bin) (map toDyn events)
 
 recieveEvents :: (Typeable a) => EventsBin -> IO [a]
 recieveEvents bin = ioRefStdGet (ref bin) chooser
@@ -73,6 +77,6 @@ reactorLoop ebin state0 = do
 
 			unless (null responses) (ioRefStdAdd (ref ebin) (responses))
 
-			if (reactorStoppedQ state)
+			if reactorStoppedQ newstate
 			then return newstate
 			else loop newstate
