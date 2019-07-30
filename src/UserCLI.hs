@@ -19,7 +19,7 @@ data CLIState = CLIState
 
 instance Reactor CLIState () () where
 	reactorStoppedQ = stopped
-	reactorDelayMS = const 100
+	reactorDelayMS = const 0
 	reactorProcess ctx state events = return (state, [])
 	reactorNewCtx ebin state = return ()
 
@@ -27,4 +27,17 @@ userCLINew :: CLIState
 userCLINew = CLIState
 	{ stopped = False
 	}
+
+interpretCycle :: CLIState -> IO (CLIState, [Dynamic])
+interpretCycle state = do
+	line <- getLine
+	return $ interpretLine state line
+
+interpretLine :: CLIState -> String -> (CLIState, [Dynamic])
+interpretLine state line = case line of
+	":stop" ->
+		(state { stopped = True }, [])
+
+	(_) ->
+		(state, [toDyn $ AppendEvaluation line])
 
