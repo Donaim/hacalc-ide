@@ -1,20 +1,55 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+
 module Main where
 
 import System.Environment
 import Control.Monad
+import System.Console.CmdArgs
+import Data.Data
 
 import Initializer
 
+data ArgsT
+	= New 
+	{ rulefile :: String
+	, displayfile :: String 
+	, sessionfile :: Maybe String
+	}
+	| Load
+	{ loadfile :: String
+	}
+	deriving (Show, Data, Typeable)
+
+new = New 
+	{ rulefile = def &= argPos 0 &= typ "rulefile"
+	, displayfile = def &= argPos 1 &= typ "displayfile"
+	, sessionfile = def &= typ "path"
+	}
+load = Load
+	{ loadfile = def &= argPos 2 &= typ "loadfile"
+	}
+
 main :: IO ()
 main = do
-	args <- getArgs
-
-	when (length args /= 2) $ do
-		putStrLn $ "Usage: hacalc-ide <rulefile> <displayfile>"
-
-	let rulefile = args !! 0
-	let displayfile = args !! 1
+	args <- cmdArgs $ modes [new, load]
+		&= help "Console based ide for PatternT"
+		&= program "hacalc-ide"
 
 	putStrLn "Starting"
-	newSystemRun rulefile displayfile
+
+	case args of
+		(New {}) -> do
+			showed <- newSystemRun (rulefile args) (displayfile args)
+
+			case sessionfile args of
+				Nothing -> return ()
+				Just file -> do
+					writeFile file (show showed)
+					putStrLn $ "Session saved to " ++ file
+
+		(Load {}) -> do
+			showed <- loadSystemRun (loadfile args)
+			writeFile (loadfile args) (show showed)
+			putStrLn $ "Session saved to " ++ (loadfile args)
+
 

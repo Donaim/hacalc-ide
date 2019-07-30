@@ -25,6 +25,7 @@ dependencies:
 - time
 - patternt
 - parallel-io
+- cmdargs
 
 default-extensions:
 - MultiParamTypeClasses
