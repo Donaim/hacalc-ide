@@ -119,6 +119,7 @@ process ctx state events0 = do
 				{ currentEvals = record : (currentEvals state)
 				, refreshq = True
 				}
+			unless (rerunq) (showTrace history)
 			loop buf newstate xs
 
 		(EvaluationStarted id) -> do
@@ -126,3 +127,9 @@ process ctx state events0 = do
 			next
 
 		where next = loop buf state xs
+
+showTrace ::  [(String, String, String)] -> IO ()
+showTrace history = putStrLn reductions
+	where
+	reductions = unlines (map showReduction history)
+	showReduction (tree, rule, ctx) = "\t" ++ (padLeft ' ' 80 tree) ++ " [using] " ++ rule ++ " while ctx = " ++ ctx
