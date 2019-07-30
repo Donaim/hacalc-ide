@@ -30,7 +30,7 @@ data UICtx = UICtx
 
 simpleUINew :: String -> UIState
 simpleUINew filepath = UIState
-	{ stopped = False
+	{ stopped = True
 	, currentEvals = []
 	, longHistory = []
 	, outfile = filepath
@@ -62,6 +62,7 @@ writeOut handle text = do
 	hFlush handle
 
 instance Reactor UIState UIEvent UICtx where
+	reactorStartFlag state = state { stopped = False }
 	reactorStoppedQ = stopped
 	reactorDelayMS = const 100
 

@@ -20,6 +20,7 @@ data ReaderState = ReaderState
 	} deriving (Eq, Show, Read)
 
 instance Reactor ReaderState ReaderEvent EventsBin where
+	reactorStartFlag state = state { readerStopped = False }
 	reactorStoppedQ = readerStopped
 	reactorDelayMS = const 100
 	reactorProcess ctx = readerProcess
@@ -36,7 +37,7 @@ simpleReaderNew :: String -> IO ReaderState
 simpleReaderNew path =  do
 	curr <- getCurrentTime
 	let r = ReaderState
-		{ readerStopped = False
+		{ readerStopped = True
 		, currentFile = path
 		, modifyTime = curr
 		}

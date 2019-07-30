@@ -45,6 +45,7 @@ ioRefStdAdd ref new =
 
 
 class (Show r, Read r, Typeable e) => Reactor r e ctx | r -> e, r -> ctx where
+	reactorStartFlag :: r -> r
 	reactorStoppedQ  :: r -> Bool
 	reactorDelayMS   :: r -> Int
 	reactorProcess   :: ctx -> r -> [e] -> IO (r, [Dynamic])
@@ -66,7 +67,14 @@ reactorLoop :: (Reactor r e ctx) => EventsBin -> r -> IO r
 reactorLoop ebin state0 = do
 	ctx <- reactorNewCtx ebin state0
 	inited <- reactorInit ctx state0
-	with_init ctx inited
+	let started = reactorStartFlag inited
+
+	unless (reactorStoppedQ state0) $ do
+		putStrLn $ "WARNING: reactor was running during stop. Reactor: " ++ show state0
+	when (reactorStoppedQ started) $ do
+		putStrLn $ "WARNING: reactor did not start. Reactor: " ++ show started
+
+	with_init ctx started
 	where
 	with_init ctx inited = loop inited
 		where

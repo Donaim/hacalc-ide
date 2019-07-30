@@ -19,6 +19,7 @@ data CLIState = CLIState
 	} deriving (Eq, Show, Read)
 
 instance Reactor CLIState () () where
+	reactorStartFlag state = state { stopped = False }
 	reactorStoppedQ = stopped
 	reactorDelayMS = const 200
 	reactorProcess ctx state events = interpretCycle state
@@ -26,7 +27,7 @@ instance Reactor CLIState () () where
 
 userCLINew :: CLIState
 userCLINew = CLIState
-	{ stopped = False
+	{ stopped = True
 	}
 
 interpretCycle :: CLIState -> IO (CLIState, [Dynamic])

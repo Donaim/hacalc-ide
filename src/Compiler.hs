@@ -65,6 +65,7 @@ data CompilerState = CompilerState
 	} deriving (Eq, Show, Read)
 
 instance Reactor CompilerState CompilerEvent CompilerCtx where
+	reactorStartFlag state = state { compilerStopped = False }
 	reactorStoppedQ = compilerStopped
 	reactorDelayMS = const 100
 	reactorProcess = compilerProcess
@@ -82,7 +83,7 @@ newctx ebin state = do
 
 compilerNew :: CompilerState
 compilerNew = CompilerState
-	{ compilerStopped = False
+	{ compilerStopped = True
 	, compilerText = ""
 	, compilerPatterns = []
 	, evalCount = 0
