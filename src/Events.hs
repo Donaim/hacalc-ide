@@ -1,6 +1,7 @@
 
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 
 module Events where
 
@@ -9,6 +10,7 @@ import Data.IORef
 import Data.Either
 import Control.Concurrent as CONC
 import Control.Monad
+import Control.Exception
 
 data EventsBin = EventsBin
 	{ ref :: IORef [[Dynamic]]
@@ -76,15 +78,24 @@ reactorLoop ebin state0 = do
 
 	with_init ctx started
 	where
-	with_init ctx inited = loop inited
+	with_init ctx inited = do
+		(r, me) <- loop inited
+		case me of
+			Nothing -> return ()
+			Just e -> putStrLn $ "Reactor fail: " ++ show e ++ " ; Reactor = " ++ show r
+		return r
 		where
 		loop state = do
 			CONC.threadDelay (reactorDelayMS state * 1000)
 			events <- recieveEvents ebin
-			(newstate, responses) <- reactorProcess ctx state events
 
-			unless (null responses) (ioRefStdAdd (ref ebin) (responses))
+			r <- try $ reactorProcess ctx state events
+			case r :: Either SomeException _ of
+				Left e -> return (state, Just e)
+				Right (newstate, responses) -> do
+					unless (null responses) (ioRefStdAdd (ref ebin) (responses))
 
-			if reactorStoppedQ newstate
-			then return newstate
-			else loop newstate
+					if reactorStoppedQ newstate
+					then return (newstate, Nothing)
+					else loop newstate
+

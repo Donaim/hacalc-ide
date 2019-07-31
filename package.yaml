@@ -35,6 +35,7 @@ library:
 
 ghc-options:
 - -Wno-tabs
+- -Wno-partial-type-signatures
 - -Wincomplete-patterns
 - -O3
 
