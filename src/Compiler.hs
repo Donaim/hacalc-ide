@@ -28,10 +28,22 @@ simplifyCtxInitial = ()
 showCtx :: SimplifyCtx -> String
 showCtx = show
 
+-----------
+-- RULES --
+-----------
+
+ruleDiv :: String -> Tree -> Maybe Tree
+ruleDiv = stdNumberRule (/)
+
+ruleSub :: String -> Tree -> Maybe Tree
+ruleSub = stdNumberRule (-)
+
 builtinRules :: [PureSimplificationF]
 builtinRules =
 	[ ("$add", ruleAdd "$add")
 	, ("$mult", ruleMult "$mult")
+	, ("$sub", ruleSub "$sub")
+	, ("$div", ruleDiv "$div")
 	]
 
 splitLines :: String -> [String]
