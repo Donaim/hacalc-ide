@@ -43,13 +43,15 @@ readPatterns text = do
 	return okRules
 	where
 	lines       = splitLines text
-	filtered    = filter (not . isWhiteSpace) lines
+	filtered    = filter good lines
 	mrules      = map parseMatch filtered
 	partitioned = partitionEithers mrules
 	okRules     = snd partitioned
 	badRules    = fst partitioned
 
 	isWhiteSpace str = all isSpace str
+	isComment str = "//" `isPrefixOf` (dropWhile isSpace str)
+	good line = not (isWhiteSpace line || isComment line)
 
 mixedRules :: [SimplifyPattern] -> [SimlifyFT]
 mixedRules patterns = map Tuple32 builtinRules ++ map Tuple30 patterns
