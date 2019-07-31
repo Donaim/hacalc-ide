@@ -37,12 +37,37 @@ builtinRules =
 splitLines :: String -> [String]
 splitLines = lines
 
-readPatterns :: String -> Either [ParseMatchError] [SimplifyPattern]
+splitRulesets :: [String] -> [[String]]
+splitRulesets lines = loop [] [] lines
+	where
+	loop buf cur [] = reverse ((reverse cur) : buf)
+	loop buf cur (x : xs) =
+		if "-----" `isPrefixOf` x
+		then loop ((reverse cur) : buf) [] xs
+		else loop buf (x : cur) xs
+
+readPatterns :: String -> Either [ParseMatchError] [[SimplifyPattern]]
 readPatterns text = do
+	unless (null badReads) (Left badReads)
+	return (snd partitioned)
+	where
+	allLines = splitLines text
+	rulesets = splitRulesets allLines
+
+	reads :: [Either [ParseMatchError] [SimplifyPattern]]
+	reads = map readOneRuleset rulesets
+
+	partitioned :: ([[ParseMatchError]], [[SimplifyPattern]])
+	partitioned = partitionEithers reads
+
+	badReads :: [ParseMatchError]
+	badReads = concat $ fst partitioned
+
+readOneRuleset :: [String] -> Either [ParseMatchError] [SimplifyPattern]
+readOneRuleset lines = do
 	unless (null badRules) (Left badRules)
 	return okRules
 	where
-	lines       = splitLines text
 	uncommented = map (fst3 . partitionString "//") lines
 	filtered    = filter (not . isWhiteSpace) uncommented
 	mrules      = map parseMatch filtered
@@ -50,17 +75,15 @@ readPatterns text = do
 	okRules     = snd partitioned
 	badRules    = fst partitioned
 
-	isWhiteSpace str = all isSpace str
-
-mixedRules :: [SimplifyPattern] -> [SimlifyFT]
-mixedRules patterns = map Tuple32 builtinRules ++ map Tuple30 patterns
+mixedRules :: [[SimplifyPattern]] -> [[SimlifyFT]]
+mixedRules patterns = map (\ ps -> map Tuple32 builtinRules ++ map Tuple30 ps) patterns
 
 type EvalRecord = (Int, String)
 
 data CompilerState = CompilerState
 	{ compilerStopped          :: Bool
 	, compilerText             :: String
-	, compilerPatterns         :: [SimplifyPattern]
+	, compilerPatterns         :: [[SimplifyPattern]]
 	, evalCount                :: Int
 	, currentEvals             :: [EvalRecord]
 	, evalLimit                :: Int -- ASSUMPTION: Must be the same as UI's `showLimit`
@@ -161,7 +184,7 @@ limitRecords ctx lim cur = do
 	where
 	partition n arr = (take n arr, drop n arr)
 
-runSimplification :: CompilerCtx -> Bool -> [SimplifyPattern] -> EvalRecord -> IO ()
+runSimplification :: CompilerCtx -> Bool -> [[SimplifyPattern]] -> EvalRecord -> IO ()
 runSimplification ctx rerunq patterns (currentEvalIndex, line) = do
 
 	newth <- CONC.forkIO safeSimpthread
@@ -192,7 +215,7 @@ threadsDoall ctx func = do
 	let indexes = map fst3 threads
 	mapM_ func indexes
 
-rerunSimplificationThread :: CompilerCtx -> [SimplifyPattern] -> Int -> IO ()
+rerunSimplificationThread :: CompilerCtx -> [[SimplifyPattern]] -> Int -> IO ()
 rerunSimplificationThread ctx patterns index = do
 	matched <- atomicModifyIORef' (execThreads ctx) modify
 	mapM_ todo matched
@@ -213,7 +236,7 @@ killRunningSimplification ctx index = do
 
 	modify threads = partition ((/= index) . fst3) threads
 
-runSimplificationThread :: EventsBin -> Bool -> [SimlifyFT] -> EvalRecord -> IO ()
+runSimplificationThread :: EventsBin -> Bool -> [[SimlifyFT]] -> EvalRecord -> IO ()
 runSimplificationThread ebin rerunq mixed (index, line) =
 	case tokens of
 		Left err ->
@@ -224,8 +247,18 @@ runSimplificationThread ebin rerunq mixed (index, line) =
 	tokens = tokenize line
 	withTokens oktokens = do
 		let tree = makeTree (Group oktokens)
-		history <- mixedApplySimplificationsWithPureUntil0Debug mixed simplifyCtxInitial tree
+		history <- forRules tree mixed
 		sendEvent ebin (PushEvaluation rerunq index line (showHistory history))
+
+	forRules tree [] = return []
+	forRules tree (ruleset : rest) = do
+		history <- mixedApplySimplificationsWithPureUntil0Debug ruleset simplifyCtxInitial tree
+		let newtree = if null history
+			then tree
+			else fst3 (last history)
+
+		next <- forRules newtree rest
+		return (history ++ next)
 
 	showHistory :: [(Tree, Either SimplifyPattern String, SimplifyCtx)] -> [(String, String, String)]
 	showHistory = map f

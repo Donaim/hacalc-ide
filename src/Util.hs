@@ -3,6 +3,7 @@ module Util where
 
 import Data.Dynamic
 import Data.List
+import Data.Char
 
 appendDyn :: (Typeable a) => a -> [Dynamic] -> [Dynamic]
 appendDyn x xs = (toDyn x) : xs
@@ -14,6 +15,9 @@ padLeft :: Char -> Int -> String -> String
 padLeft c n s = s ++ (replicate toappend c)
 	where
 	toappend = max (n - (length s)) 0
+
+isWhiteSpace :: String -> Bool
+isWhiteSpace str = all isSpace str
 
 partitionString :: String -> String -> (String, String, String)
 partitionString break s =
