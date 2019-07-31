@@ -99,7 +99,8 @@ compilerProcess ctx state events0 = do
 	where
 	loop buf state [] = return (state, buf)
 	loop buf state (x : xs) = case x of
-		CompilerStopEvent ->
+		CompilerStopEvent -> do
+			threadsDoall ctx (killRunningSimplification ctx)
 			return (state { compilerStopped = True }, buf)
 
 		(SourceFileUpdated newtext) -> do
