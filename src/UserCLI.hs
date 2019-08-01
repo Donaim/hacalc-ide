@@ -65,6 +65,8 @@ interpretLine state line = case cmdParse line of
 		(state, [toDyn $ UIChangeLimit n, toDyn $ CompilerChangeLimit n])
 	Whitespace ->
 		(state, [])
+	SetPadding n ->
+		(state, [toDyn $ UISetPadding n])
 
 data Cmd
 	= Error String
@@ -75,6 +77,7 @@ data Cmd
 	| Remove Int
 	| Limit Int
 	| Whitespace
+	| SetPadding Int
 	deriving (Eq, Show, Read)
 
 eguard :: Bool -> a -> b -> Either a b
@@ -114,19 +117,35 @@ cmdParse line = do
 
 			"limit" -> uneither $ do
 				x <- eguard (null args)
-					(Error $ "rm: expected single argument but got " ++ show (length args))
+					(Error $ "expected single argument but got " ++ show (length args))
 					(head args)
 
 				let mayben = readMaybe x :: Maybe Int
 				n <- eguard (isNothing mayben)
-					(Error $ ":rm expected nonegative Int but got " ++ x)
+					(Error $ "expected nonegative Int but got " ++ x)
 					(fromJust mayben)
 
 				n <- eguard (n < 0)
-					(Error $ ":rm expected nonegative Int but got a negative one: " ++ show n)
+					(Error $ "expected nonegative Int but got a negative one: " ++ show n)
 					(n)
 
 				return $ Limit n
+
+			"padding" -> uneither $ do
+				x <- eguard (null args)
+					(Error $ "expected single argument but got " ++ show (length args))
+					(head args)
+
+				let mayben = readMaybe x :: Maybe Int
+				n <- eguard (isNothing mayben)
+					(Error $ "expected positive Int but got " ++ x)
+					(fromJust mayben)
+
+				n <- eguard (n <= 0)
+					(Error $ "expected positive Int but got a negative one: " ++ show n)
+					(n)
+
+				return $ SetPadding n
 
 			other ->
 				ErrorNoCmd prefix
