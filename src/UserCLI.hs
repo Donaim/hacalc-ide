@@ -97,7 +97,7 @@ cmds :: [(String, [String] -> Cmd, String)]
 cmds =
 	[ ("quit"   , quit      , "Quit. Saves session if sessionfile provided")
 	, ("reset"  , reset     , "Clears all evaluations. Kills the evaluation threads")
-	, ("rm"     , rmcmd     , "Removes evaluation, kills its evaluation thread")
+	, ("del"    , rmcmd     , "Removes evaluation, kills its evaluation thread")
 	, ("limit"  , setLimit  , "Sets the limit of evaluations showed. Old ones will be killed")
 	, ("padding", setPadding, "Set padding of reductions list")
 	, ("help"   , help      , "Show list of commands")
