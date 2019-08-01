@@ -18,6 +18,7 @@ import ICompiler
 import IUI
 import IReader
 import Events
+import Util
 
 data CLIState = CLIState
 	{ stopped     :: Bool
@@ -68,6 +69,8 @@ interpretLine state line = case cmdParse line of
 		(state, [])
 	SetPadding n ->
 		(state, [toDyn $ UISetPadding n])
+	Help s ->
+		(state, [toDyn $ Notify s])
 
 data Cmd
 	= Error String
@@ -79,6 +82,7 @@ data Cmd
 	| Limit Int
 	| Whitespace
 	| SetPadding Int
+	| Help String
 	deriving (Eq, Show, Read)
 
 eguard :: Bool -> a -> b -> Either a b
@@ -89,14 +93,21 @@ uneither x = case x of
 	Left a -> a
 	Right b -> b
 
-cmds :: [(String, [String] -> Cmd)]
+cmds :: [(String, [String] -> Cmd, String)]
 cmds =
-	[ ("quit", quit)
-	, ("reset", reset)
-	, ("rm", rmcmd)
-	, ("limit", setLimit)
-	, ("padding", setPadding)
+	[ ("quit"   , quit      , "Quit. Saves session if sessionfile provided")
+	, ("reset"  , reset     , "Clears all evaluations. Kills the evaluation threads")
+	, ("rm"     , rmcmd     , "Removes evaluation, kills its evaluation thread")
+	, ("limit"  , setLimit  , "Sets the limit of evaluations showed. Old ones will be killed")
+	, ("padding", setPadding, "Set padding of reductions list")
+	, ("help"   , help      , "Show list of commands")
 	]
+
+help :: [String] -> Cmd
+help args = Help (concatMap format cmds)
+	where
+	maxnamelen = maximum $ map length $ map fst3 cmds
+	format (name, f, description) = "\t:" ++ (padLeft ' ' maxnamelen name) ++ " \t" ++ description ++ "\n"
 
 setPadding :: [String] -> Cmd
 setPadding args = uneither $ do
@@ -161,8 +172,8 @@ cmdParse line = do
 	then Whitespace
 	else if isEval
 		then Eval line
-		else case find ((== prefix) . fst) cmds of
-			Just (name, f) -> f args
+		else case find ((== prefix) . fst3) cmds of
+			Just (name, f, desc) -> f args
 			Nothing -> ErrorNoCmd prefix
 
 	where
