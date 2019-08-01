@@ -48,7 +48,7 @@ writeEvals pad handle evals = do
 
 formatEval :: Int -> UIEvalRecord -> String
 formatEval pad (id, line, history) =
-	(padLeft ' ' 6 (show id ++ ")")) ++ (padLeft ' ' pad line) ++ "\n\t" ++ result
+	(padLeft ' ' 6 (show id ++ ")")) ++ line ++ "\n\t" ++ result
 	where
 	result = case history of
 		[] -> line
