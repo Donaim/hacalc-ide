@@ -1,0 +1,14 @@
+
+// MY STUFF
+
+map f nil -> nil
+map f (cons a b) -> (cons (f a) (map f b))
+
+kek -> cons 1 (cons 2 (cons 3 nil))
+
+add1 x -> $add 1 x
+
+fold f c nil -> c
+fold f c (cons a b) -> fold f (f c a) b
+
+sum l -> fold $add 0 l

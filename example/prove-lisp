@@ -1,0 +1,26 @@
+
+// EQUALITY
+
+equal a b -> tt | a == b
+equal (f a) (f b) -> equal a b
+equal (f x a) (f x b) -> equal a b
+
+// INDUCTION
+
+whole -> (equal (append (cons a1 a) (append b c)) (append (append (cons a1 a) b) c))
+fleft x -> (append x (append b c))
+fright x -> (append (append x b) c)
+iter x -> cons z x
+
+ieq f g b i -> equal (equal (f (i n)) (g (i n))) (equal (f n) (g n)) | equal (f b) (g b) == tt
+
+// LISP SHIT
+
+car (cons a b) -> a
+cdr (cons a b) -> b
+
+append nil b -> b
+append (cons x y) b -> cons x (append y b)
+
+empty? nil -> tt
+empty? (cons a b) -> ff

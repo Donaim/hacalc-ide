@@ -1,0 +1,37 @@
+
+// EQUALTITY
+
+eq a a -> eqt a a // Using primitive equality test, for deep one use (==) condition. Returns proof of equality
+
+eq? (eqt {xs}) -> True
+eq ({xs} a) ({ys} b) -> eq a b | {xs} == {ys} // BUG: Need to check xs == ys explicitly
+
+syml (eqt a b) a -> b
+symr (eqt a b) b -> a
+
+// DEFINITIONS
+
+add Zero    y -> y
+add y    Zero -> y
+add (Suc x) y -> Suc (add x y)
+add x (Suc y) -> Suc (add x y)         // overlapping is OK
+
+// INDUCTIVE HELPER
+// f: left side of ==
+// g: right side of ==
+// b: base case (0, nil, ..)
+// i: successor function
+// checks the base case, then hyphothesis, then returns the proof
+inductive-eq f g b i -> eqt (f n) (g n) | eq? (eq (f b) (g b)) == True | eq? (eq (eq (f n) (g n)) (eq (f (i n)) (g (i n)))) == True
+
+// PROOFS
+
+commutative@+fleft  x -> (add x z)
+commutative@+fright x -> (add z x)
+
+commutative@+ -> inductive-eq commutative@+fleft commutative@+fright Zero Suc
+
+associative@+fleft  x -> (add x (add b c))
+associative@+fright x -> (add (add x b) c)
+
+associative@+ -> inductive-eq associative@+fleft associative@+fright Zero Suc

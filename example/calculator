@@ -1,0 +1,61 @@
+{xs} + + {ys} -> {xs} + {ys}
+{xs} - - {ys} -> {xs} + {ys}
+{xs} - + {ys} -> {xs} - {ys}
+{xs} + - {ys} -> {xs} - {ys}
+
+-----------------
+
++ -> pm plus
+- -> pm minus
+* -> ml times
+/ -> ml div
+
+-----------------
+
+a b {bs} (pm f) {xs} -> (a b {bs}) (pm f) ({xs})
+{xs} (pm f) a b {bs} -> ({xs}) (pm f) (a b {bs})
+
+a b {bs} (ml f) {xs} -> (a b {bs}) (ml f) ({xs})
+{xs} (ml f) a b {bs} -> ({xs}) (ml f) (a b {bs})
+
+-----------------
+
+pm plus -> +
+pm minus -> -
+ml times -> *
+ml div -> /
+
+-----------------
+
+// builtins
+#a + #b -> $add a b
+#a * #b -> $mult a b
+#a + (#b + w) -> (a + b) + w
+#a * (#b * w) -> (a * b) * w
+
+#a - #b -> $sub a b
+#a / #b -> $div a b
+
+// constant properties
+0 * x -> 0
+1 * x -> x
+0 + x -> x
+
+// commutative
+a + b -> b + a | b < a
+a * b -> b * a | b < a
+a + (b + c) -> b + (a + c) | b < a
+a * (b * c) -> b * (a * c) | b < a
+
+// associative
+(a + b) + c -> (a + (b + c))
+(a * b) * c -> (a * (b * c))
+
+// number properties
+(#a * x) + (#b * x) -> (a + b) * x
+(#a * x) + ((#b * x) + w) -> (a + b) * x + w
+x + (#b * x) -> (1 + b) * x
+x + ((#b * x) + w) -> (1 + b) * x + w
+
+// distributive
+c * (x + y) -> (c * x) + (c * y)
