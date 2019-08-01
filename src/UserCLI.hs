@@ -172,13 +172,13 @@ cmdParse line = do
 	then Whitespace
 	else if isEval
 		then Eval line
-		else case find ((== prefix) . fst3) cmds of
+		else case find ((isPrefixOf prefix) . fst3) cmds of
 			Just (name, f, desc) -> f args
 			Nothing -> ErrorNoCmd prefix
 
 	where
 	split = words line
-	isEval = head line /= ':'
+	isEval = head line /= ':' || null (tail line)
 	prefix = tail (head split)
 	args = tail split
 
