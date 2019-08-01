@@ -4,6 +4,7 @@ module UserCLI where
 import Text.Read (readMaybe)
 import Data.Either
 import Data.Maybe
+import Data.List
 import Data.Char
 import Control.Exception
 import Control.Monad
@@ -88,67 +89,81 @@ uneither x = case x of
 	Left a -> a
 	Right b -> b
 
+cmds :: [(String, [String] -> Cmd)]
+cmds =
+	[ ("quit", quit)
+	, ("reset", reset)
+	, ("rm", rmcmd)
+	, ("limit", setLimit)
+	, ("padding", setPadding)
+	]
+
+setPadding :: [String] -> Cmd
+setPadding args = uneither $ do
+	x <- eguard (null args)
+		(Error $ "expected single argument but got " ++ show (length args))
+		(head args)
+
+	let mayben = readMaybe x :: Maybe Int
+	n <- eguard (isNothing mayben)
+		(Error $ "expected positive Int but got " ++ x)
+		(fromJust mayben)
+
+	n <- eguard (n <= 0)
+		(Error $ "expected positive Int but got a negative one: " ++ show n)
+		(n)
+
+	return $ SetPadding n
+
+setLimit :: [String] -> Cmd
+setLimit args = uneither $ do
+	x <- eguard (null args)
+		(Error $ "expected single argument but got " ++ show (length args))
+		(head args)
+
+	let mayben = readMaybe x :: Maybe Int
+	n <- eguard (isNothing mayben)
+		(Error $ "expected nonegative Int but got " ++ x)
+		(fromJust mayben)
+
+	n <- eguard (n < 0)
+		(Error $ "expected nonegative Int but got a negative one: " ++ show n)
+		(n)
+
+	return $ Limit n
+
+rmcmd :: [String] -> Cmd
+rmcmd args = uneither $ do
+	x <- eguard (null args)
+		(Error $ "rm: expected single argument but got " ++ show (length args))
+		(head args)
+
+	let mayben = readMaybe x :: Maybe Int
+	n <- eguard (isNothing mayben)
+		(Error $ ":rm expected nonegative Int but got " ++ x)
+		(fromJust mayben)
+
+	n <- eguard (n < 0)
+		(Error $ ":rm expected nonegative Int but got a negative one: " ++ show n)
+		(n)
+
+	return $ Remove n
+
+reset :: [String] -> Cmd
+reset args = Reset
+
+quit :: [String] -> Cmd
+quit args = Stop
+
 cmdParse :: String -> Cmd
 cmdParse line = do
 	if all isSpace line
 	then Whitespace
 	else if isEval
 		then Eval line
-		else case prefix of
-			"quit" ->
-				Stop
-			"reset" ->
-				Reset
-			"rm" -> uneither $ do
-				x <- eguard (null args)
-					(Error $ "rm: expected single argument but got " ++ show (length args))
-					(head args)
-
-				let mayben = readMaybe x :: Maybe Int
-				n <- eguard (isNothing mayben)
-					(Error $ ":rm expected nonegative Int but got " ++ x)
-					(fromJust mayben)
-
-				n <- eguard (n < 0)
-					(Error $ ":rm expected nonegative Int but got a negative one: " ++ show n)
-					(n)
-
-				return $ Remove n
-
-			"limit" -> uneither $ do
-				x <- eguard (null args)
-					(Error $ "expected single argument but got " ++ show (length args))
-					(head args)
-
-				let mayben = readMaybe x :: Maybe Int
-				n <- eguard (isNothing mayben)
-					(Error $ "expected nonegative Int but got " ++ x)
-					(fromJust mayben)
-
-				n <- eguard (n < 0)
-					(Error $ "expected nonegative Int but got a negative one: " ++ show n)
-					(n)
-
-				return $ Limit n
-
-			"padding" -> uneither $ do
-				x <- eguard (null args)
-					(Error $ "expected single argument but got " ++ show (length args))
-					(head args)
-
-				let mayben = readMaybe x :: Maybe Int
-				n <- eguard (isNothing mayben)
-					(Error $ "expected positive Int but got " ++ x)
-					(fromJust mayben)
-
-				n <- eguard (n <= 0)
-					(Error $ "expected positive Int but got a negative one: " ++ show n)
-					(n)
-
-				return $ SetPadding n
-
-			other ->
-				ErrorNoCmd prefix
+		else case find ((== prefix) . fst) cmds of
+			Just (name, f) -> f args
+			Nothing -> ErrorNoCmd prefix
 
 	where
 	split = words line
