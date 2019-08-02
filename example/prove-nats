@@ -22,7 +22,7 @@ add x (Suc y) -> Suc (add x y)         // overlapping is OK
 // b: base case (0, nil, ..)
 // i: successor function
 // checks the base case, then hyphothesis, then returns the proof
-inductive-eq f g b i -> eqt (f n) (g n) | eq? (eq (f b) (g b)) == True | eq? (eq (eq (f n) (g n)) (eq (f (i n)) (g (i n)))) == True
+inductive-eq f g b i -> eqt (f n) (g n) | $equal (eq (f b) (g b)) == True | $equal (eq (eq (f n) (g n)) (eq (f (i n)) (g (i n)))) == True
 
 // PROOFS
 
