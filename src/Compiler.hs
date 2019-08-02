@@ -10,80 +10,16 @@ import Data.Dynamic
 import qualified Control.Concurrent as CONC
 import Control.Exception
 
-import PatternT.All
+import PatternT.Types
+import PatternT.Display
+import Hacalc.Run
+import Hacalc.Types
+import Hacalc.Parser
 
 import ICompiler
 import IUI
 import Events
 import Util
-
-type SimplifyMonad = IO
-type SimplifyCtx = ()
-type MonadicSimplifyT = MonadicSimplify SimplifyMonad SimplifyCtx
-type SimlifyFT = SimplificationF SimplifyMonad SimplifyCtx
-
-simplifyCtxInitial :: SimplifyCtx
-simplifyCtxInitial = ()
-
-showCtx :: SimplifyCtx -> String
-showCtx = show
-
------------
--- RULES --
------------
-
-builtinRules :: [PureSimplificationF]
-builtinRules =
-	[ ("$add", ruleAdd "$add")
-	, ("$mult", ruleMult "$mult")
-	, ("$sub", ruleSub "$sub")
-	, ("$div", ruleDiv "$div")
-	, ("$pow", rulePow "$pow")
-	]
-
-splitLines :: String -> [String]
-splitLines = lines
-
-splitRulesets :: [String] -> [[String]]
-splitRulesets lines = loop [] [] lines
-	where
-	loop buf cur [] = reverse ((reverse cur) : buf)
-	loop buf cur (x : xs) =
-		if "-----" `isPrefixOf` x
-		then loop ((reverse cur) : buf) [] xs
-		else loop buf (x : cur) xs
-
-readPatterns :: String -> Either [ParseMatchError] [[SimplifyPattern]]
-readPatterns text = do
-	unless (null badReads) (Left badReads)
-	return (snd partitioned)
-	where
-	allLines = splitLines text
-	rulesets = splitRulesets allLines
-
-	reads :: [Either [ParseMatchError] [SimplifyPattern]]
-	reads = map readOneRuleset rulesets
-
-	partitioned :: ([[ParseMatchError]], [[SimplifyPattern]])
-	partitioned = partitionEithers reads
-
-	badReads :: [ParseMatchError]
-	badReads = concat $ fst partitioned
-
-readOneRuleset :: [String] -> Either [ParseMatchError] [SimplifyPattern]
-readOneRuleset lines = do
-	unless (null badRules) (Left badRules)
-	return okRules
-	where
-	uncommented = map (fst3 . partitionString "//") lines
-	filtered    = filter (not . isWhiteSpace) uncommented
-	mrules      = map parseMatch filtered
-	partitioned = partitionEithers mrules
-	okRules     = snd partitioned
-	badRules    = fst partitioned
-
-mixedRules :: [[SimplifyPattern]] -> [[SimlifyFT]]
-mixedRules patterns = map (\ ps -> map Tuple32 builtinRules ++ map Tuple30 ps) patterns
 
 type EvalRecord = (Int, String)
 
@@ -199,7 +135,7 @@ runSimplification ctx rerunq patterns (currentEvalIndex, line) = do
 	sendEvent (ebin ctx) (EvaluationStarted currentEvalIndex)
 
 	where
-	simpthread = runSimplificationThread (ebin ctx) rerunq (mixedRules patterns) (currentEvalIndex, line)
+	simpthread = runSimplificationThread (ebin ctx) rerunq patterns (currentEvalIndex, line)
 	safeSimpthread = do
 		x <- try simpthread
 		handleResult x
@@ -243,30 +179,15 @@ killRunningSimplification ctx index = do
 
 	modify threads = partition ((/= index) . fst3) threads
 
-runSimplificationThread :: EventsBin -> Bool -> [[SimlifyFT]] -> EvalRecord -> IO ()
-runSimplificationThread ebin rerunq mixed (index, line) =
-	case tokens of
-		Left err ->
-			sendEvent ebin (CompilerTokenizeError err)
-		Right oktokens ->
-			withTokens oktokens
+runSimplificationThread :: EventsBin -> Bool -> [[SimplifyPattern]] -> EvalRecord -> IO ()
+runSimplificationThread ebin rerunq patterns (index, line) = do
+	case interpretLine patterns line of
+		Left e ->
+			sendEvent ebin (CompilerTokenizeError e)
+		Right iohistory -> do
+			history <- iohistory
+			sendEvent ebin (PushEvaluation rerunq index line (showHistory history))
 	where
-	tokens = tokenize line
-	withTokens oktokens = do
-		let tree = makeTree (Group oktokens)
-		history <- forRules tree mixed
-		sendEvent ebin (PushEvaluation rerunq index line (showHistory history))
-
-	forRules tree [] = return []
-	forRules tree (ruleset : rest) = do
-		history <- mixedApplySimplificationsWithPureUntil0Debug ruleset simplifyCtxInitial tree
-		let newtree = if null history
-			then tree
-			else fst3 (last history)
-
-		next <- forRules newtree rest
-		return (history ++ next)
-
 	showHistory :: [(Tree, Either SimplifyPattern String, SimplifyCtx)] -> [(String, String, String)]
 	showHistory = map f
 		where
