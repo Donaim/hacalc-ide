@@ -24,6 +24,7 @@ dependencies:
 - directory
 - time
 - patternt
+- hacalc
 - parallel-io
 - cmdargs
 

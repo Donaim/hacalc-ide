@@ -1,3 +1,6 @@
 [submodule "PatternT"]
 	path = PatternT
 	url = https://github.com/Donaim/PatternT.git
+[submodule "hacalc"]
+	path = hacalc
+	url = https://github.com/Donaim/hacalc.git
