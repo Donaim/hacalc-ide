@@ -11,7 +11,6 @@ import qualified Control.Concurrent as CONC
 import Control.Exception
 
 import PatternT.Types
-import PatternT.Display
 import Hacalc.Run
 import Hacalc.Types
 import Hacalc.Parser
@@ -187,8 +186,3 @@ runSimplificationThread ebin rerunq patterns (index, line) = do
 		Right iohistory -> do
 			history <- iohistory
 			sendEvent ebin (PushEvaluation rerunq index line (showHistory history))
-	where
-	showHistory :: [(Tree, Either SimplifyPattern String, SimplifyCtx)] -> [(String, String, String)]
-	showHistory = map f
-		where
-		f (t, traceElem, ctx) = (stringifyTree t, stringifyTraceElem traceElem, showCtx ctx)
