@@ -2,7 +2,7 @@
 module IUI where
 
 import Data.Dynamic
-import PatternT.Types
+import Hacalc.PatternT
 
 data UIEvent
 	= UIStopEvent

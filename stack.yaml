@@ -34,7 +34,7 @@ resolver: lts-13.29
 #  - wai
 packages:
 - .
-- ./PatternT
+- ./hacalc/PatternT
 - ./hacalc
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.

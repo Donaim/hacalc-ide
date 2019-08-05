@@ -12,8 +12,7 @@ import Data.IORef
 import Data.Dynamic
 import qualified Control.Concurrent as CONC
 
-import PatternT.All
-
+import Hacalc.PatternT
 import ICompiler
 import IUI
 import IReader

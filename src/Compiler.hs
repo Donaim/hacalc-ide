@@ -10,7 +10,7 @@ import Data.Dynamic
 import qualified Control.Concurrent as CONC
 import Control.Exception
 
-import PatternT.Types
+import Hacalc.PatternT
 import Hacalc.Run
 import Hacalc.Types
 import Hacalc.Parser

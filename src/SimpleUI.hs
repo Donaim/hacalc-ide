@@ -6,7 +6,7 @@ import System.IO
 import Control.Monad
 import Data.List
 
-import PatternT.All
+import Hacalc.PatternT
 import Events
 import Util
 import IUI
