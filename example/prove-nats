@@ -1,18 +1,22 @@
 
 // EQUALTITY
 
-eq a a -> eqt a a // Using primitive equality test, for deep one use (==) condition. Returns proof of equality
+refl a a -> EQ a a // Using primitive equality test, for deep one use $equal condition. Returns proof of equality
 
-eq? (eqt {xs}) -> True
-eq ({xs} a) ({ys} b) -> eq a b | {xs} == {ys} // BUG: Need to check xs == ys explicitly
+eq? (EQ {xs}) -> True
+refl ({xs} a) ({ys} b) -> refl a b | {xs} == {ys} // BUG: Need to check xs == ys explicitly
 
-syml (eqt a b) a -> b
-symr (eqt a b) b -> a
+syml (EQ a b) a -> b
+symr (EQ a b) b -> a
+
+//EQ (refl a b) (refl c d) -> EQ a b
+
+ind (EQ a b) (refl a b) -> EQ a b
 
 // DEFINITIONS
 
 add Zero    y -> y
-add y    Zero -> y
+add x    Zero -> x
 add (Suc x) y -> Suc (add x y)
 add x (Suc y) -> Suc (add x y)         // overlapping is OK
 
@@ -21,8 +25,8 @@ add x (Suc y) -> Suc (add x y)         // overlapping is OK
 // g: right side of ==
 // b: base case (0, nil, ..)
 // i: successor function
-// checks the base case, then hyphothesis, then returns the proof
-inductive-eq f g b i -> eqt (f n) (g n) | $equal (eq (f b) (g b)) == True | $equal (eq (eq (f n) (g n)) (eq (f (i n)) (g (i n)))) == True
+// checks the base case, then creates the proof of (EQ (f n) (g n)), then checks if (f n) (g n) == (f (i n)) (g (i n)), if yes, then proven
+inductive-eq f g b i -> ind (EQ (f n) (g n)) (refl (f (i n)) (g (i n))) | $equal (f b) (g b)
 
 // PROOFS
 
