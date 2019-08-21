@@ -180,7 +180,7 @@ killRunningSimplification ctx index = do
 
 runSimplificationThread :: EventsBin -> Bool -> [[SimplifyPattern]] -> EvalRecord -> IO ()
 runSimplificationThread ebin rerunq patterns (index, line) = do
-	case interpretLine patterns line of
+	case interpretLine () patterns line of
 		Left e ->
 			sendEvent ebin (CompilerTokenizeError e)
 		Right iohistory -> do

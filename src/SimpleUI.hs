@@ -13,7 +13,7 @@ import IUI
 
 import Debug.Trace
 
-type UIEvalRecord = (Int, String, [(String, String, String)])
+type UIEvalRecord = (Int, String, [(String, String)])
 
 data UIState = UIState
 	{ stopped              :: Bool
@@ -52,7 +52,7 @@ formatEval pad (id, line, history) =
 	where
 	result = case history of
 		[] -> line
-		or -> fst3 $ last history
+		or -> fst $ last history
 
 writeOut :: Handle -> String -> IO ()
 writeOut handle text = do
@@ -155,8 +155,8 @@ limitEvals lim cur =
 stdlog :: String -> IO ()
 stdlog text = hPutStrLn stderr text
 
-showTrace :: Int -> [(String, String, String)] -> IO ()
+showTrace :: Int -> [(String, String)] -> IO ()
 showTrace pad history = putStrLn reductions
 	where
 	reductions = unlines (map showReduction history)
-	showReduction (tree, rule, ctx) = "\t" ++ (padLeft ' ' pad tree) ++ " [using] " ++ rule
+	showReduction (tree, rule) = "\t" ++ (padLeft ' ' pad tree) ++ " [using] " ++ rule

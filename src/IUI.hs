@@ -11,7 +11,7 @@ data UIEvent
 	| Notify String
 	| DebugLog String
 	| ClearEvaluations
-	| PushEvaluation Bool Int String [(String, String, String)]
+	| PushEvaluation Bool Int String [(String, String)]
 	| EvaluationStarted Int
 	| UISetPadding Int
 	| UIRemoveEvaluation Int
