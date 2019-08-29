@@ -58,8 +58,8 @@ interpretLine state line = case cmdParse line of
 	ErrorNoCmd s ->
 		(state, [toDyn $ Notify $ "Command " ++ show s ++ " does not exists"])
 
-	Remove i ->
-		(state, [toDyn $ UIRemoveEvaluation i, toDyn $ CompilerRemoveEvalRecord i])
+	Remove is ->
+		(state, concatMap (\ i -> [toDyn $ UIRemoveEvaluation i, toDyn $ CompilerRemoveEvalRecord i]) is)
 	Reset ->
 		(state, [toDyn $ ClearEvaluations, toDyn $ CompilerResetEvaluations])
 	Limit n ->
@@ -77,7 +77,7 @@ data Cmd
 	| Eval String
 	| Stop
 	| Reset
-	| Remove Int
+	| Remove [Int]
 	| Limit Int
 	| Whitespace
 	| SetPadding Int
@@ -144,20 +144,16 @@ setLimit args = uneither $ do
 
 rmcmd :: [String] -> Cmd
 rmcmd args = uneither $ do
-	x <- eguard (null args)
-		(Error $ "rm: expected single argument but got " ++ show (length args))
-		(head args)
+	let maybens = map (\ x -> readMaybe x :: Maybe Int) args
+	ns <- eguard (any isNothing maybens)
+		(Error $ "expected positive Ints but got " ++ show maybens)
+		(map fromJust maybens)
 
-	let mayben = readMaybe x :: Maybe Int
-	n <- eguard (isNothing mayben)
-		(Error $ ":rm expected nonegative Int but got " ++ x)
-		(fromJust mayben)
+	ns <- eguard (any (<= 0) ns)
+		(Error $ "expected positive Ints but got a negative one: " ++ show ns)
+		(ns)
 
-	n <- eguard (n < 0)
-		(Error $ ":rm expected nonegative Int but got a negative one: " ++ show n)
-		(n)
-
-	return $ Remove n
+	return $ Remove ns
 
 reset :: [String] -> Cmd
 reset args = Reset
