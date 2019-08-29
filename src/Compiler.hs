@@ -11,9 +11,7 @@ import qualified Control.Concurrent as CONC
 import Control.Exception
 
 import Hacalc.PatternT
-import Hacalc.Run
-import Hacalc.Types
-import Hacalc.Parser
+import Hacalc.All hiding (fst3)
 
 import ICompiler
 import IUI
@@ -41,6 +39,22 @@ instance Reactor CompilerState CompilerEvent CompilerCtx where
 data CompilerCtx = CompilerCtx
 	{ execThreads   :: IORef [(Int, String, CONC.ThreadId)]
 	, ebin          :: EventsBin
+	}
+
+iopts :: InterpretOptions
+iopts = InterpretOptions
+	{ textDelimiters                     = hacalcDelimitingSymbols
+	, textDelimiterPreserveQuotesQ       = True
+	, textEnableCommentsQ                = True
+	, tokenizeRespectQuotesQ             = True
+	, tokenizeSplitByNumbersQ            = True
+	, parseFixMissingBracketsQ           = True
+	, parseReportMissingEndquoteQ        = True
+	, parseReportEmptyBracketsQ          = False
+	, displayConcatByNumbersQ            = True
+	, interpretStepLimit                 = Nothing
+	, interpretTreeSizeLimit             = Nothing
+	, interpretCondRecursionLimit        = Just 8
 	}
 
 newctx :: EventsBin -> CompilerState -> IO CompilerCtx
@@ -180,9 +194,9 @@ killRunningSimplification ctx index = do
 
 runSimplificationThread :: EventsBin -> Bool -> [[SimplifyPattern]] -> EvalRecord -> IO ()
 runSimplificationThread ebin rerunq patterns (index, line) = do
-	case interpretLine () patterns line of
+	case interpretLine iopts patterns () line of
 		Left e ->
 			sendEvent ebin (CompilerTokenizeError e)
 		Right iohistory -> do
-			history <- iohistory
+			(answer, history, droped) <- iohistory
 			sendEvent ebin (PushEvaluation rerunq index line (showHistory history))
